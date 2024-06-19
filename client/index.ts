@@ -21,16 +21,14 @@ socket.on('connect', () => {
 
 socket.on('authenticated', (message) => {
     console.log(message);
-    // rl.close(); // Do not close here if further input is needed
+    // rl.close();
 });
 
 socket.on('role', (message) => {
-    console.log("Role is", message);
+    console.log("Hello!", message+',Welcome to Cafeteria Recommendation.');
     const role = message;
-    console.log("client", role);
     if (role === 'Admin') {
-        // socket.emit('menu');
-        showMenu('admin');
+        socket.emit('menu');
     }
 });
 

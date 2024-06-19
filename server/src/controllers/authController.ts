@@ -42,15 +42,6 @@ class UserService {
         return rows;
     }
 
-    //Anushka
-    // public async getMenu(roleID: string): Promise<Role[]> {
-    //     console.log('getMenu Functoion called')
-    //     const [rows] = await db.execute<Role[]>(
-    //         'SELECT * FROM MenuItem',
-    //         [roleID]
-    //     );
-    //     return rows;
-    // }
 
     public async getMenu(roleID: string): Promise<MenuItem[]> {
         const [rows] = await db.execute<MenuItem[]>(

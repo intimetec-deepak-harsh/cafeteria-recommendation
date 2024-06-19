@@ -24,7 +24,7 @@ class SocketHandler {
                     console.log('Authenticated User:', user[0]); // Log the authenticated user details
 
                     const roleId = user[0].roleId;
-                    console.log('Role ID:', roleId); // Log the roleId for debugging
+                    console.log('Role ID:', roleId); 
                     if (!roleId) {
                         throw new Error('User role ID is missing or undefined');
                     }
@@ -40,7 +40,7 @@ class SocketHandler {
                         socket.emit('authentication_failed', 'Role not found');
                     }
                 } else {
-                    socket.emit('authentication_failed', 'Authentication failed');
+                    socket.emit('authentication_failed', 'Authentication failed, Invalid User Credentials');
                 }
             } catch (error) {
                 console.error('Error during authentication:', error);

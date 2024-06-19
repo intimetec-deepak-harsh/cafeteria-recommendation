@@ -14,15 +14,13 @@ class AdminService {
       // Add other menu options here
       console.log("0. Exit");
 
-      // For simplicity, return a mock choice, in real scenarios use a prompt to get user choice
       return new Promise((resolve) => {
           setTimeout(() => {
-              resolve("0"); // Mock choice, for real implementation use a prompt library
+              resolve("0"); 
           }, 1000);
       });
   }
   
-  // Implement other methods like addMenuItem, updateMenuItem etc.
 }
 
 export default AdminService;

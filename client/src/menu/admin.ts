@@ -9,9 +9,7 @@ class AdminMenu {
 
             switch (choice) {
                 case "1":
-                    // Handle view menu items logic
                     break;
-                // Add cases for other admin functionalities
                 case "0":
                     continueLoop = false;
                     break;
