@@ -1,46 +1,61 @@
 import { Socket } from 'socket.io';
-import { authenticateUser, getUserRole } from '../controllers/authController';
+import UserService from '../controllers/authController';
 
-export const handleSocketIO = (socket: Socket) => {
-    console.log('Socket handler initiated for socket ID:', socket.id);
+class SocketHandler {
+    private userService: UserService;
 
-    socket.on('authenticate', async (data) => {
-        console.log('Authenticate event received:', data);
-        const { email, password } = data;
+    constructor() {
+        this.userService = new UserService();
+    }
 
-        try {
-            const user = await authenticateUser(email, password);
-            console.log("USER : " , user);
-            
-            if (user && user.length > 0) {
-                console.log('if ');
-                
-                const role = await getUserRole(user[0].roleId);
-                if (role) {
-                    console.log("logging" , role);
-                    
-                    socket.emit('role', `${role[0].role}`);
+    public handleConnection(socket: Socket): void {
+        console.log('Socket handler initiated for socket ID:', socket.id);
+
+        socket.on('authenticate', async (data) => {
+            console.log('Authenticate event received:', data);
+            const { email, password } = data;
+
+            try {
+                const user = await this.userService.authenticateUser(email, password);
+                console.log("USER:", user);
+
+                if (user && user.length > 0) {
+                    console.log('User authenticated successfully');
+                    console.log('Authenticated User:', user[0]); // Log the authenticated user details
+
+                    const roleId = user[0].roleId;
+                    console.log('Role ID:', roleId); // Log the roleId for debugging
+                    if (!roleId) {
+                        throw new Error('User role ID is missing or undefined');
+                    }
+
+                    const role = await this.userService.getUserRole(roleId);
+                    if (role && role.length > 0) {
+                        const roleName = role[0].role;
+                        socket.emit('role', roleName);
+
+                        const menu = await this.userService.getMenu(roleName);
+                        socket.emit('menu', menu);
+                    } else {
+                        socket.emit('authentication_failed', 'Role not found');
+                    }
                 } else {
-                    socket.emit('authentication_failed', 'Role not found');
+                    socket.emit('authentication_failed', 'Authentication failed');
                 }
-            } else {
-                socket.emit('authentication_failed', 'Authentication failed');
+            } catch (error) {
+                console.error('Error during authentication:', error);
+                socket.emit('error', 'Error occurred during authentication');
             }
-        } catch (error) {
-            console.error('Error during authentication:', error);
-            socket.emit('error', 'Error occurred during authentication');
-        }
-    });
+        });
 
-    
+        socket.on('disconnect', () => {
+            console.log('Connection closed for socket ID:', socket.id);
+        });
 
-    socket.on('disconnect', () => {
-        console.log('Connection closed for socket ID:', socket.id);
-    });
+        socket.on('error', (error) => {
+            console.error('Socket error for socket ID:', socket.id, error);
+        });
+    }
+}
 
-    socket.on('error', (error) => {
-        console.error('Socket error for socket ID:', socket.id, error);
-    });
-};
-
-
+export default SocketHandler;

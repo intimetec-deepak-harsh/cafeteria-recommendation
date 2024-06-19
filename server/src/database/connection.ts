@@ -9,7 +9,7 @@ export const connectDB = async () => {
         password: 'Root@123',
         database: 'Cafeteria_recommendation',
         waitForConnections: true,
-         connectionLimit: 10, 
+        connectionLimit: 10, 
     });
     console.log('Database connected');
 };

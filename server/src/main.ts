@@ -1,29 +1,24 @@
-import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { handleSocketIO } from './utils/socket';
+import { createServer } from 'http';
+import SocketHandler from './utils/socket';
 import { connectDB } from './database/connection';
 
 const PORT = 8080;
 
 const startServer = async () => {
     try {
-        // Initialize the database connection
         await connectDB();
-
-        // Create an HTTP server
-        const server = http.createServer();
-
-        // Create a Socket.IO server and attach it to the HTTP server
+        const server = createServer();
         const io = new SocketIOServer(server, {
             cors: {
                 origin: '*',
             }
         });
 
-        // Handle Socket.IO connections
+        const socketHandler = new SocketHandler();
+
         io.on('connection', (socket) => {
-            console.log('Client connected with ID:', socket.id);
-            handleSocketIO(socket);
+            socketHandler.handleConnection(socket);
         });
 
         server.listen(PORT, () => {
