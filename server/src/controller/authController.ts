@@ -22,6 +22,15 @@ interface MenuItem extends RowDataPacket {
     rating: number;
 }
 
+interface FeedbackData extends RowDataPacket{
+    rating: number; 
+    comment: string; 
+    userId: number;
+    itemId: number;
+    feedbackDate: Date;
+
+}
+
 
 class UserService {
     public async authenticateUser(email: string, password: string): Promise<User[]> {
@@ -98,6 +107,14 @@ class UserService {
             console.error('Failed to delete menu item:', error);
             throw new Error('Error delete menu item');
         }
+    }
+
+
+    public async getFeedback(): Promise<MenuItem[]> {
+        const [rows] = await db.execute<MenuItem[]>(
+            'select * from feedback order by rating desc',
+        );
+        return rows;
     }
 }
 

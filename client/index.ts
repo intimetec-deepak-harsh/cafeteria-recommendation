@@ -77,7 +77,7 @@ function viewMenu(role: string) {
         console.log('2. Add New Menu Items');
         console.log('3. Update Menu Items');
         console.log('4. Delete Menu Items');
-        console.log('5. Logout');
+        console.log('5. Exit');
 
         rl.question('Select Option: ', (option) => {
        
@@ -108,9 +108,16 @@ function viewMenu(role: string) {
         });    
 
     } else if (role === 'Chef') {
-        console.log('1. View All Menu Items');
-        console.log('2. View Feedback');
-        console.log('5. Exit');
+        console.log('1. View Feedback');
+        console.log('2. Show Recommendation Menu item');
+        console.log('3. Exit');
+
+        rl.question('Select Option: ', (option) => {
+       
+            if (option === '1') { 
+                viewFeedbacks();   
+            }
+        });
 
     } else if (role === 'Employee') {
         console.log('1. View All Menu Items');
@@ -126,10 +133,7 @@ function viewAllMenuItem() {
        MenuDetails.showMenu.forEach((item: any) => {
        console.log(`Id: ${item.item_Id},Name: ${item.item_name}, Meal Type: ${item.meal_type}, Rating: ${item.rating}, Price: ${item.price}, Availability: ${item.availability_status === 1 ? 'Yes' : 'No'}`);
        });
-    
-
-
-       console.log('---------------------------------------');
+        console.log('---------------------------------------');
        viewMenu('Admin');
     });
 }
@@ -170,5 +174,18 @@ function deleteExisitngMenuItem() {
     rl.question('Enter Item ID: ', (item_Id) => {
         socket.emit('deleteExisitingMenuItem', {item_Id});
 
+    });
+}
+
+
+function viewFeedbacks() {
+    socket.emit('viewFeedback');
+    socket.on('viewFeedback',(feedbackData) => {
+       
+        feedbackData.showFeedback.forEach((item:any) => {
+            console.log(`User Id: ${item.userId}, Rating: ${item.Rating}, Comments: ${item.Comment}`);
+        });
+        console.log('---------------------------------------');
+       viewMenu('Chef');
     });
 }

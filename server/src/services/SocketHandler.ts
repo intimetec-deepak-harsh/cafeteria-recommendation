@@ -98,6 +98,21 @@ class SocketHandler {
             }
         });
 
+        socket.on('viewFeedback', async () => {     
+            const showFeedback = await this.userService.getFeedback();
+            console.log(showFeedback);
+
+            if (showFeedback && showFeedback.length > 0) {
+                const Feedbacks = {showFeedback}; 
+               
+                socket.emit('viewFeedback', Feedbacks);
+            }else {
+
+            }
+
+        });
+
+
 
         socket.on('disconnect', () => {
             console.log('Connection closed for socket ID:', socket.id);
