@@ -29,6 +29,10 @@ socket.on('authenticated', (message) => {
     console.log(message);
 });
 
+socket.on('authenticated', (message) => {
+    console.log(message);
+});
+
 socket.on('role', (message) => {
     console.log(`Welcome, ${username} to Cafeteria Recommendation. Your Role is: ${message}`);
     console.log('--------------------------------------------');
@@ -56,6 +60,12 @@ socket.on('menuItemUpdated', (message) => {
     viewMenu('Admin');
 });
 
+socket.on('menuItemDeleted', (message) => {
+    console.log(message);
+    console.log('---------------------------------------');
+    viewMenu('Admin');
+});
+
 socket.on('disconnect', () => {
     console.log('Disconnected from server');
     rl.close();
@@ -67,7 +77,7 @@ function viewMenu(role: string) {
         console.log('2. Add New Menu Items');
         console.log('3. Update Menu Items');
         console.log('4. Delete Menu Items');
-        console.log('5. Exit');
+        console.log('5. Logout');
 
         rl.question('Select Option: ', (option) => {
        
@@ -76,13 +86,17 @@ function viewMenu(role: string) {
             viewAllMenuItem();
 
             }else if(option === '2'){
+
             addMenuItem();
+
             }else if (option === '3'){
-             console.log('update Menu Item');
+
              updateExistingMenuItem();
+
             }else if (option === '4') {
-             console.log('Delete Menu Item');
+
              deleteExisitngMenuItem();
+
             } else if (option === '5') {
                 console.log('Exiting...');
                 rl.close();
@@ -110,20 +124,23 @@ function viewAllMenuItem() {
     socket.emit('viewMenu');
     socket.on('MenuDetails',(MenuDetails) => {
        MenuDetails.showMenu.forEach((item: any) => {
-       console.log(`Id: ${item.itemId},Name: ${item.itemName}, Meal Type: ${item.meal_type}, Rating: ${item.rating}, Price: ${item.price}, Availability: ${item.availability_status === 1 ? 'Yes' : 'No'}`);
+       console.log(`Id: ${item.item_Id},Name: ${item.item_name}, Meal Type: ${item.meal_type}, Rating: ${item.rating}, Price: ${item.price}, Availability: ${item.availability_status === 1 ? 'Yes' : 'No'}`);
        });
+    
+
+
        console.log('---------------------------------------');
        viewMenu('Admin');
     });
 }
 
 function addMenuItem() {
-    rl.question('Enter Item Name: ', (itemName) => {
+    rl.question('Enter Item Name: ', (item_name) => {
     rl.question('Enter Meal Type(breakfast/lunch/dinner): ', (meal_type) => {
     rl.question('Enter Price: ', (price) => {
     rl.question('Enter Availability (1 for Yes/0 for No): ', (availability_status) => {
     rl.question('Enter rating: ', (rating) => {
-      socket.emit('addNewMenuItem', { itemName, meal_type, rating,price,availability_status });
+      socket.emit('addNewMenuItem', { item_name, meal_type, rating,price,availability_status });
         });
         });
         });
@@ -133,13 +150,13 @@ function addMenuItem() {
 }
 
 function updateExistingMenuItem() {
-    rl.question('Enter Item ID: ', (itemId) => {
-        rl.question('Enter Item Name: ', (itemName) => {
+    rl.question('Enter Item ID: ', (item_Id) => {
+        rl.question('Enter Item Name: ', (item_name) => {
             rl.question('Enter Meal Type(breakfast/lunch/dinner): ', (meal_type) => {
             rl.question('Enter Price: ', (price) => {
             rl.question('Enter Availability (1 for Yes/0 for No): ', (availability_status) => {
                 rl.question('Enter rating: ', (rating) => {
-                socket.emit('updateExisitingMenuItem', { itemId, itemName, meal_type, rating,price,availability_status });
+                socket.emit('updateExisitingMenuItem', { item_Id, item_name, meal_type, rating,price,availability_status });
             });
             });
             });
@@ -150,8 +167,8 @@ function updateExistingMenuItem() {
 
 
 function deleteExisitngMenuItem() {
-    rl.question('Enter Item ID: ', (itemId) => {
-        socket.emit('deleteExisitingMenuItem', {itemId});
+    rl.question('Enter Item ID: ', (item_Id) => {
+        socket.emit('deleteExisitingMenuItem', {item_Id});
 
     });
 }

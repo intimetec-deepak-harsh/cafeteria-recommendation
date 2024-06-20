@@ -14,8 +14,8 @@ interface Role extends RowDataPacket {
 }
 
 interface MenuItem extends RowDataPacket {
-    itemId: number;
-    itemName: string;
+    item_Id: number;
+    item_name: string;
     availability_status: boolean;
     meal_type: string;
     price: number;
@@ -53,13 +53,13 @@ class UserService {
         return rows;
     }
 
-    public async addNewMenuItem(itemName: string, meal_type: string, rating: string,price: number,availability_status:boolean): Promise<void> {
-        if (!itemName || !meal_type || !rating || !price || !availability_status) {
+    public async addNewMenuItem(item_name: string, meal_type: string, rating: string,price: number,availability_status:boolean): Promise<void> {
+        if (!item_name || !meal_type || !rating || !price || !availability_status) {
             throw new Error('Item name, Meal Type, and rating must be provided');
         }
         await db.execute(
-            'INSERT INTO menuitem (itemName, meal_type, rating, price, availability_status) VALUES (?, ?, ?, ?, ?)',
-            [itemName, meal_type, rating, price, availability_status]
+            'INSERT INTO menuitem (item_name, meal_type, rating, price, availability_status) VALUES (?, ?, ?, ?, ?)',
+            [item_name, meal_type, rating, price, availability_status]
         );
     }
 
@@ -71,8 +71,8 @@ class UserService {
         }
         try {
             await db.execute(
-                'UPDATE menuitem SET itemName = ?, meal_type = ?, rating = ?, price = ?, availability_status = ? WHERE itemId = ?',
-                [data.itemName, data.meal_type, data.rating, data.price, data.availability_status, data.itemId]
+                'UPDATE menuitem SET item_name = ?, meal_type = ?, rating = ?, price = ?, availability_status = ? WHERE item_Id = ?',
+                [data.item_name, data.meal_type, data.rating, data.price, data.availability_status, data.item_Id]
             );
     
             console.log('Menu item updated successfully.');
@@ -89,8 +89,8 @@ class UserService {
         }
         try {
             await db.execute(
-                'DELETE FROM menuitem WHERE itemId = ?',
-                [data.itemId]
+                'DELETE FROM menuitem WHERE item_Id = ?',
+                [data.item_Id]
             );    
     
             console.log('Menu item Deleted successfully.');

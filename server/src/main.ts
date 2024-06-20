@@ -16,7 +16,7 @@ const startServer = async () => {
         const socketHandler = new SocketHandler();
 
         io.on('connection', (socket) => {
-            socketHandler.handleConnection(socket);
+            socketHandler.setupSocketEvents(socket);
         });
 
         server.listen(PORT, () => {

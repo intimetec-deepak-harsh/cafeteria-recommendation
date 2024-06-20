@@ -8,7 +8,7 @@ class SocketHandler {
         this.userService = new UserService();
     }
 
-    public handleConnection(socket: Socket): void {
+    public setupSocketEvents(socket: Socket): void {
         console.log('Socket handler initiated for socket ID:', socket.id);
 
         socket.on('authenticate', async (data) => {
@@ -32,10 +32,6 @@ class SocketHandler {
                     if (role && role.length > 0) {
                         const roleName = role[0].role;                       
                         socket.emit('role', roleName);
-
-
-                        // const menu = await this.userService.getMenu(roleName);
-                        // socket.emit('menu', menu);
                     } else {
                         socket.emit('authentication_failed', 'Role not found');
                     }
@@ -56,16 +52,18 @@ class SocketHandler {
                 const menuName = {showMenu}; 
                
                 socket.emit('MenuDetails', menuName);
+            }else {
+
             }
 
         });
 
         socket.on('addNewMenuItem', async (data) => {
-            const { itemName, meal_type,rating,price,availability_status} = data;
+            const { item_name, meal_type,rating,price,availability_status} = data;
             console.log('check data',data);
             
             try {
-           const addMenuItem =  await this.userService.addNewMenuItem(itemName, meal_type, rating, price, availability_status);
+           const addMenuItem =  await this.userService.addNewMenuItem(item_name, meal_type, rating, price, availability_status);
                 socket.emit('menuItemAdded', 'New menu item added successfully');
                 
             } catch (error) {
@@ -92,7 +90,7 @@ class SocketHandler {
             
             try {
            const addMenuItem =  await this.userService.deleteExisitingMenuItem(data);
-                socket.emit('menuItemUpdated', 'Menu item deleted successfully');
+                socket.emit('menuItemDeleted', 'Menu item deleted successfully');
                 
             } catch (error) {
                 console.error('Error deleteing menu item:', error);
