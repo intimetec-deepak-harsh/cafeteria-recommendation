@@ -10,9 +10,7 @@ const startServer = async () => {
         await connectDB();
         const server = createServer();
         const io = new SocketIOServer(server, {
-            cors: {
-                origin: '*',
-            }
+            cors: { origin: '*',  }
         });
 
         const socketHandler = new SocketHandler();
