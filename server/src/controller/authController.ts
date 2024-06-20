@@ -16,13 +16,11 @@ interface Role extends RowDataPacket {
 interface MenuItem extends RowDataPacket {
     itemId: number;
     itemName: string;
-    category: string;
+    availability_status: boolean;
+    meal_type: string;
+    price: number;
     rating: number;
 }
-
-// interface MenuDetails {
-//     showMenu: MenuItem[];
-// }
 
 
 class UserService {
@@ -56,12 +54,12 @@ class UserService {
     }
 
     public async addNewMenuItem(itemName: string, meal_type: string, rating: string,price: number,availability_status:boolean): Promise<void> {
-        if (!itemName || !meal_type || !rating) {
+        if (!itemName || !meal_type || !rating || !price || !availability_status) {
             throw new Error('Item name, Meal Type, and rating must be provided');
         }
         await db.execute(
-            'INSERT INTO menuitem (itemName, meal_type, rating, price, availability_status) VALUES (?, ?, ?)',
-            [itemName, meal_type, rating]
+            'INSERT INTO menuitem (itemName, meal_type, rating, price, availability_status) VALUES (?, ?, ?, ?, ?)',
+            [itemName, meal_type, rating, price, availability_status]
         );
     }
 }

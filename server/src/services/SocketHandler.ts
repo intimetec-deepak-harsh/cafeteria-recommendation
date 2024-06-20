@@ -60,12 +60,14 @@ class SocketHandler {
 
         });
 
-        socket.on('addMenuItem', async (data) => {
+        socket.on('addNewMenuItem', async (data) => {
             const { itemName, meal_type,rating,price,availability_status} = data;
+            console.log('check data',data);
+            
             try {
-           const addMenuItem =  await this.userService.addNewMenuItem(itemName, meal_type, rating,price,availability_status);
+           const addMenuItem =  await this.userService.addNewMenuItem(itemName, meal_type, rating, price, availability_status);
                 socket.emit('menuItemAdded', 'New menu item added successfully');
-                console.log(addMenuItem);
+                
             } catch (error) {
                 console.error('Error adding new menu item:', error);
                 socket.emit('error','Error occurred during authentication'); 

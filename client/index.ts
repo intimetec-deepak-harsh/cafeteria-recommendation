@@ -49,7 +49,8 @@ socket.on('role', (message) => {
 
 socket.on('menuItemAdded', (message) => {
     console.log(message);
-    
+    console.log('---------------------------------------');
+    viewMenu('Admin');
 });
 
 
@@ -106,7 +107,7 @@ function viewAllMenuItem() {
     socket.emit('viewMenu');
     socket.on('MenuDetails',(MenuDetails) => {
        MenuDetails.showMenu.forEach((item: any) => {
-       console.log(`Name: ${item.itemName}, Meal Type: ${item.meal_type}, Rating: ${item.rating}, Price: ${item.price}, Availability: ${item.availability_status}`);
+       console.log(`Name: ${item.itemName}, Meal Type: ${item.meal_type}, Rating: ${item.rating}, Price: ${item.price}, Availability: ${item.availability_status === 1 ? 'Yes' : 'No'}`);
        });
        console.log('---------------------------------------');
        viewMenu('Admin');
@@ -119,10 +120,11 @@ function addMenuItem() {
     rl.question('Enter Price: ', (price) => {
     rl.question('Enter Availability (1 for Yes/0 for No): ', (availability_status) => {
     rl.question('Enter rating: ', (rating) => {
-            socket.emit('addNewMenuitem', { itemName, meal_type, rating,price,availability_status });
+      socket.emit('addNewMenuItem', { itemName, meal_type, rating,price,availability_status });
         });
         });
-    });
+        });
      });  
     });    
+
 }
