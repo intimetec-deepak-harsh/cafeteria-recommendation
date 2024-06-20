@@ -62,6 +62,43 @@ class UserService {
             [itemName, meal_type, rating, price, availability_status]
         );
     }
+
+
+    public async updateExisitingMenuItem(data:any): Promise<void> {
+        console.log('show',data)
+        if (!data) {
+            throw new Error('Item name, Meal Type, and rating must be provided');
+        }
+        try {
+            await db.execute(
+                'UPDATE menuitem SET itemName = ?, meal_type = ?, rating = ?, price = ?, availability_status = ? WHERE itemId = ?',
+                [data.itemName, data.meal_type, data.rating, data.price, data.availability_status, data.itemId]
+            );
+    
+            console.log('Menu item updated successfully.');
+        } catch (error) {
+            console.error('Failed to update menu item:', error);
+            throw new Error('Error updating menu item');
+        }
+    }
+
+    public async deleteExisitingMenuItem(data:any): Promise<void> {
+        console.log('show',data)
+        if (!data) {
+            throw new Error('Item Id must be provided');
+        }
+        try {
+            await db.execute(
+                'DELETE FROM menuitem WHERE itemId = ?',
+                [data.itemId]
+            );    
+    
+            console.log('Menu item Deleted successfully.');
+        } catch (error) {
+            console.error('Failed to delete menu item:', error);
+            throw new Error('Error delete menu item');
+        }
+    }
 }
 
 export default UserService;

@@ -74,6 +74,32 @@ class SocketHandler {
             }
         });
 
+        socket.on('updateExisitingMenuItem', async (data) => {
+            console.log('check data',data);
+            
+            try {
+           const addMenuItem =  await this.userService.updateExisitingMenuItem(data);
+                socket.emit('menuItemUpdated', 'Menu item updated successfully');
+                
+            } catch (error) {
+                console.error('Error adding new menu item:', error);
+                socket.emit('error','Error occurred during authentication'); 
+            }
+        });
+
+        socket.on('deleteExisitingMenuItem', async (data) => {
+            console.log('check data',data);
+            
+            try {
+           const addMenuItem =  await this.userService.deleteExisitingMenuItem(data);
+                socket.emit('menuItemUpdated', 'Menu item deleted successfully');
+                
+            } catch (error) {
+                console.error('Error deleteing menu item:', error);
+                socket.emit('error','Error occurred during deleting'); 
+            }
+        });
+
 
         socket.on('disconnect', () => {
             console.log('Connection closed for socket ID:', socket.id);

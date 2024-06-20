@@ -22,14 +22,11 @@ socket.on('connect', () => {
 
 socket.on('user',(message)=> {
  username = message;
-// console.log('Welcome',username);
 });
 
 
 socket.on('authenticated', (message) => {
     console.log(message);
-    console.log('Hello',message);
-    // rl.close();
 });
 
 socket.on('role', (message) => {
@@ -53,6 +50,11 @@ socket.on('menuItemAdded', (message) => {
     viewMenu('Admin');
 });
 
+socket.on('menuItemUpdated', (message) => {
+    console.log(message);
+    console.log('---------------------------------------');
+    viewMenu('Admin');
+});
 
 socket.on('disconnect', () => {
     console.log('Disconnected from server');
@@ -74,12 +76,13 @@ function viewMenu(role: string) {
             viewAllMenuItem();
 
             }else if(option === '2'){
-             console.log('Adding New Item')
             addMenuItem();
             }else if (option === '3'){
              console.log('update Menu Item');
+             updateExistingMenuItem();
             }else if (option === '4') {
              console.log('Delete Menu Item');
+             deleteExisitngMenuItem();
             } else if (option === '5') {
                 console.log('Exiting...');
                 rl.close();
@@ -107,7 +110,7 @@ function viewAllMenuItem() {
     socket.emit('viewMenu');
     socket.on('MenuDetails',(MenuDetails) => {
        MenuDetails.showMenu.forEach((item: any) => {
-       console.log(`Name: ${item.itemName}, Meal Type: ${item.meal_type}, Rating: ${item.rating}, Price: ${item.price}, Availability: ${item.availability_status === 1 ? 'Yes' : 'No'}`);
+       console.log(`Id: ${item.itemId},Name: ${item.itemName}, Meal Type: ${item.meal_type}, Rating: ${item.rating}, Price: ${item.price}, Availability: ${item.availability_status === 1 ? 'Yes' : 'No'}`);
        });
        console.log('---------------------------------------');
        viewMenu('Admin');
@@ -127,4 +130,28 @@ function addMenuItem() {
      });  
     });    
 
+}
+
+function updateExistingMenuItem() {
+    rl.question('Enter Item ID: ', (itemId) => {
+        rl.question('Enter Item Name: ', (itemName) => {
+            rl.question('Enter Meal Type(breakfast/lunch/dinner): ', (meal_type) => {
+            rl.question('Enter Price: ', (price) => {
+            rl.question('Enter Availability (1 for Yes/0 for No): ', (availability_status) => {
+                rl.question('Enter rating: ', (rating) => {
+                socket.emit('updateExisitingMenuItem', { itemId, itemName, meal_type, rating,price,availability_status });
+            });
+            });
+            });
+            });
+         });  
+        });
+}
+
+
+function deleteExisitngMenuItem() {
+    rl.question('Enter Item ID: ', (itemId) => {
+        socket.emit('deleteExisitingMenuItem', {itemId});
+
+    });
 }
