@@ -1,13 +1,6 @@
 import { Socket } from 'socket.io';
-import UserService from '../controllers/authController';
 
 class SocketHandler {
-    private userService: UserService;
-
-    constructor() {
-        this.userService = new UserService();
-    }
-
     public handleConnection(socket: Socket): void {
         console.log('Socket handler initiated for socket ID:', socket.id);
 
