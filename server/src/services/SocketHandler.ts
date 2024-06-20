@@ -48,6 +48,18 @@ class SocketHandler {
             }
         });
 
+        socket.on('viewMenu', async () => {     
+            const showMenu = await this.userService.getMenu();
+            console.log(showMenu);
+
+            if (showMenu && showMenu.length > 0) {
+                const menuName = {showMenu}; 
+               
+                socket.emit('MenuDetails', menuName);
+            }
+
+        });
+
         socket.on('disconnect', () => {
             console.log('Connection closed for socket ID:', socket.id);
         });

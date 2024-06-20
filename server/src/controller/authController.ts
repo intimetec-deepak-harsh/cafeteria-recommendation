@@ -17,7 +17,11 @@ interface MenuItem extends RowDataPacket {
     itemId: number;
     itemName: string;
     category: string;
-    rating: number
+    rating: number;
+}
+
+interface MenuDetails {
+    showMenu: MenuItem[];
 }
 
 
@@ -40,6 +44,13 @@ class UserService {
         const [rows] = await db.execute<Role[]>(
             'SELECT role FROM role WHERE roleid = ?',
             [userId]
+        );
+        return rows;
+    }
+
+    public async getMenu(): Promise<MenuItem[]> {
+        const [rows] = await db.execute<MenuItem[]>(
+            'SELECT * FROM MenuItem',          
         );
         return rows;
     }
