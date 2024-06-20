@@ -47,6 +47,11 @@ socket.on('role', (message) => {
     }
 });
 
+socket.on('menuItemAdded', (message) => {
+    console.log(message);
+    
+});
+
 
 socket.on('disconnect', () => {
     console.log('Disconnected from server');
@@ -63,14 +68,17 @@ function viewMenu(role: string) {
 
         rl.question('Select Option: ', (option) => {
        
-            if (option === '1') {            
-                viewAllMenuItem();
+            if (option === '1') {    
+
+            viewAllMenuItem();
+
             }else if(option === '2'){
-
+             console.log('Adding New Item')
+            addMenuItem();
             }else if (option === '3'){
-
+             console.log('update Menu Item');
             }else if (option === '4') {
-
+             console.log('Delete Menu Item');
             } else if (option === '5') {
                 console.log('Exiting...');
                 rl.close();
@@ -95,12 +103,26 @@ function viewMenu(role: string) {
 }
 
 function viewAllMenuItem() {
-
     socket.emit('viewMenu');
     socket.on('MenuDetails',(MenuDetails) => {
        MenuDetails.showMenu.forEach((item: any) => {
-       console.log(`Name: ${item.itemName}, Category: ${item.category}, Rating: ${item.rating}`);
-
+       console.log(`Name: ${item.itemName}, Meal Type: ${item.meal_type}, Rating: ${item.rating}, Price: ${item.price}, Availability: ${item.availability_status}`);
        });
+       console.log('---------------------------------------');
+       viewMenu('Admin');
     });
+}
+
+function addMenuItem() {
+    rl.question('Enter Item Name: ', (itemName) => {
+    rl.question('Enter Meal Type(breakfast/lunch/dinner): ', (meal_type) => {
+    rl.question('Enter Price: ', (price) => {
+    rl.question('Enter Availability (1 for Yes/0 for No): ', (availability_status) => {
+    rl.question('Enter rating: ', (rating) => {
+            socket.emit('addNewMenuitem', { itemName, meal_type, rating,price,availability_status });
+        });
+        });
+    });
+     });  
+    });    
 }
