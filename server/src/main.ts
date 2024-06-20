@@ -1,6 +1,6 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { createServer } from 'http';
-import SocketHandler from './utils/socket';
+import SocketHandler from './services/SocketHandler';
 import { connectDB } from './database/connection';
 
 const PORT = 8080;
