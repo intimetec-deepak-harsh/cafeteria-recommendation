@@ -5,6 +5,8 @@ const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
 });
+
+
 let username: string;
 const socket = io('http://localhost:8080');
 
