@@ -112,6 +112,19 @@ class SocketHandler {
 
         });
 
+        socket.on('giveFeedback', async (data) => {
+            const {userId, item_Id, Comment, Rating,feedbackDate} = data;
+            console.log('check data for feedback',data);
+            
+            try {
+           const sendFeedback =  await this.userService.giveFeedback(userId,item_Id,Comment, Rating,feedbackDate);
+                socket.emit('feedbackAdded', 'Feedback added successfully');
+                
+            } catch (error) {
+                console.error('Error Sending Feedback item:', error);
+                socket.emit('error','Error occurred during authentication'); 
+            }
+        });
 
 
         socket.on('disconnect', () => {

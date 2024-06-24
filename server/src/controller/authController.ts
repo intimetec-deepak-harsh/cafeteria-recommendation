@@ -1,36 +1,9 @@
 import { db } from '../database/connection';
 import { RowDataPacket } from 'mysql2/promise';
-
-interface User extends RowDataPacket {
-    id: number;
-    name: string;
-    email: string;
-    password: string;
-    roleId: number; // Ensure this matches your database schema
-}
-
-interface Role extends RowDataPacket {
-    role: string;
-}
-
-interface MenuItem extends RowDataPacket {
-    item_Id: number;
-    item_name: string;
-    availability_status: boolean;
-    meal_type: string;
-    price: number;
-    rating: number;
-}
-
-interface FeedbackData extends RowDataPacket{
-    rating: number; 
-    comment: string; 
-    userId: number;
-    itemId: number;
-    feedbackDate: Date;
-
-}
-
+import { User } from '../interface/user';
+import { Role } from '../interface/role';
+import { MenuItem } from '../interface/menuItem';
+import { FeedbackData } from '../interface/feedback';
 
 class UserService {
     public async authenticateUser(email: string, password: string): Promise<User[]> {
@@ -115,6 +88,17 @@ class UserService {
             'select * from feedback order by rating desc',
         );
         return rows;
+    }
+
+    public async giveFeedback(item_Id: string, userId: string,Comment: string,Rating: string,feedbackDate:Date): Promise<void> {
+        console.log('come inside')
+        if (!item_Id || !userId || !Comment || !Rating || !feedbackDate) {
+            throw new Error('Item name, Feedback, and rating must be provided');
+        }
+        await db.execute(
+            'INSERT INTO feedback (userId,item_Id,Comment,Rating,feedbackDate) VALUES (?, ?, ?, ?, ?)',
+            [userId,item_Id, Comment,Rating,feedbackDate]
+        );
     }
 }
 
