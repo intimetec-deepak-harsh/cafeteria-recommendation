@@ -47,16 +47,13 @@ class EmployeeService {
         rl.question('Enter Rating: ', (Rating) => {
         const date = new Date();
         const feedbackDate = date.toISOString().slice(0, 19).replace('T', ' ');
-        console.log({ item_Id, userId, Comment, Rating, feedbackDate }); // Log the feedback data
 
         socket.emit('giveFeedback', {item_Id, userId, Comment, Rating,feedbackDate });
-    //    this.viewMenu(rl, socket);         
-            
-        });    
+       });    
          });
           });    
             });
-        // this.viewMenu(rl,socket);
+
     }
 }
 

@@ -13,32 +13,47 @@ const rl = readline.createInterface({
 let username: string;
 const socket = io('http://localhost:8080');
 
+//function to authenticate user email and password
 const authenticateUser = () => {
     rl.question('Enter email: ', (email) => {
         rl.question('Enter password: ', (password) => {
-            socket.emit('authenticate', { email, password });
+            socket.emit('authenticate', { email, password },(error: any) => {
+
+                                if (error) {
+                    console.error('Authentication failed:', error);
+                    rl.close();
+                }
+            });
         });
     });
 };
 
+// Function to handle role-based navigation after authentication
 const handleRoleBasedNavigation = (role: string) => {
-    if (role === 'Admin') {
-        AdminService.viewMenu(rl, socket);
-    } else if (role === 'Chef') {
-        ChefService.viewMenu(rl, socket);
-    } else if (role === 'Employee') {
-        EmployeeService.viewMenu(rl, socket);
-    } else {
-        rl.close();
+    switch (role) {
+        case 'Admin':
+            AdminService.viewMenu(rl, socket);
+            break;
+        case 'Chef':
+            ChefService.viewMenu(rl, socket);
+            break;
+        case 'Employee':
+            EmployeeService.viewMenu(rl, socket);
+            break;
+        default:
+            rl.close();
+            break;
     }
 };
 
+// Event listener when socket connects to server
 socket.on('connect', () => {
     console.log('Connected to server with ID:', socket.id);
     console.log('successfully connected with server');
     authenticateUser();
 });
 
+// Event listener when user is authenticated
 socket.on('user',(message)=> {
  username = message;
 });
@@ -47,19 +62,12 @@ socket.on('authenticated', (message) => {
     console.log(message);
 });
 
+// Event listener when user's role is received
 socket.on('role', (message) => {
     console.log(`Welcome, ${username} to Cafeteria Recommendation. Your Role is: ${message}`);
     console.log('--------------------------------------------');
     const role = message;
-    if (role === 'Admin') {
-        AdminService.viewMenu(rl,socket);
-    }else if (role === 'Chef') {     
-        ChefService.viewMenu(rl,socket);
-    }else if (role === 'Employee'){
-     EmployeeService.viewMenu(rl,socket);
-    }else{
-    rl.close();
-    }
+    handleRoleBasedNavigation(role);
 });
 
 socket.on('menuItemAdded', (message) => {
@@ -85,7 +93,6 @@ socket.on('feedbackAdded', (message) => {
     console.log('---------------------------------------');
     EmployeeService.viewMenu(rl,socket);
 });
-
 
 socket.on('disconnect', () => {
     console.log('Disconnected from server');

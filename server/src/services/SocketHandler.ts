@@ -1,11 +1,14 @@
 import { Socket } from 'socket.io';
 import UserService from '../controller/authController';
+import { engineSentimentAnalysisService } from '../services/recommendationService';
 
 class SocketHandler {
     private userService: UserService;
+    // private EngineSentimentAnalysisService: engineSentimentAnalysisService;
 
     constructor() {
         this.userService = new UserService();
+        // this.EngineSentimentAnalysisService = new this.engineSentimentAnalysisService();
     }
 
     public setupSocketEvents(socket: Socket): void {
@@ -56,6 +59,33 @@ class SocketHandler {
 
             }
 
+        });
+        
+        socket.on('viewMealType', async () => {     
+            const showMenu = await this.userService.getMealType();
+            console.log(showMenu);
+
+            if (showMenu && showMenu.length > 0) {
+                const menuName = {showMenu}; 
+               
+                socket.emit('MenuDetails', menuName);
+            }else {
+
+            }
+        });
+
+
+        socket.on('viewAvailableMenuItem', async () => {     
+            const showMenu = await this.userService.getAvailableMenuItems();
+            console.log(showMenu);
+
+            if (showMenu && showMenu.length > 0) {
+                const menuName = {showMenu}; 
+               
+                socket.emit('MenuDetails', menuName);
+            }else {
+
+            }
         });
 
         socket.on('addNewMenuItem', async (data) => {
@@ -126,6 +156,23 @@ class SocketHandler {
             }
         });
 
+        socket.on('updateItemAvailability', async (data) => {
+            console.log('check data',data);
+            
+            try {
+           const updateMenuItemAvailability =  await this.userService.updateItemAvailability(data);
+                socket.emit('menuItemUpdated', 'Menu item Availability updated successfully');
+                
+            } catch (error) {
+                console.error('Error Updating menu item availability:', error);
+                socket.emit('error','Error occurred during authentication'); 
+            }
+        });
+
+
+
+
+     
 
         socket.on('disconnect', () => {
             console.log('Connection closed for socket ID:', socket.id);

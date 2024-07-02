@@ -12,8 +12,9 @@ export const connectDB = async () => {
         connectionLimit: 10, 
     });
     console.log('Database connected');
+    return db;
 };
-
+export const getDbConnection = () => db;
 
 
 

@@ -6,30 +6,44 @@ class AdminService {
         console.log('2. Add New Menu Items');
         console.log('3. Update Menu Items');
         console.log('4. Delete Menu Items');
-        console.log('5. Exit');
+        console.log('5. Update Menu Availability');
+        console.log('8. Exit');
 
         rl.question('Select Option: ', (option) => {
-            if (option === '1') {
-                this.viewAllMenuItem(rl, socket);
-            } else if (option === '2') {
-                this.addMenuItem(rl, socket);
-            } else if (option === '3') {
-                this.updateExistingMenuItem(rl, socket);
-            } else if (option === '4') {
-                this.deleteExistingMenuItem(rl, socket);
-            } else if (option === '5') {
-                console.log('Exiting...');
-                rl.close();
-                socket.disconnect();
-                
-            } else {
-                console.log('Invalid option, please try again.');
-                this.viewMenu(rl, socket);
-            }
+            this.handleMenuOption(option, rl, socket);
         });
     }
 
-    public static viewAllMenuItem(rl: readline.Interface, socket: any) {
+    public static handleMenuOption(option: string, rl: readline.Interface,socket: any): void {
+        switch (option) {
+            case '1':
+                this.viewAllMenuItems(rl,socket);
+                break;
+            case '2':
+                this.addMenuItem(rl,socket);
+                break;
+            case '3':
+                this.updateMenuItem(rl,socket);
+                break;
+            case '4':
+                this.deleteMenuItem(rl,socket);
+                break;
+            case '5':
+                this.updateItemAvailability(rl,socket);
+                break;
+            case '8':
+                console.log('Exiting...');
+                rl.close();
+                socket.disconnect();
+                break;
+            default:
+                console.log('Invalid option, please try again.');
+                this.viewAllMenuItems(rl,socket);
+                break;
+        }
+    }
+
+    public static viewAllMenuItems(rl: readline.Interface, socket: any) {
         socket.emit('viewMenu');
 
         socket.on('MenuDetails', (data: any) => {
@@ -61,7 +75,7 @@ class AdminService {
         });
     }
 
-    public static updateExistingMenuItem(rl: readline.Interface, socket: any) {
+    public static updateMenuItem(rl: readline.Interface, socket: any) {
         rl.question('Enter Item ID: ', (item_Id) => {
             rl.question('Enter Item Name: ', (item_name) => {
                 rl.question('Enter Meal Type(breakfast/lunch/dinner): ', (meal_type) => {
@@ -78,10 +92,20 @@ class AdminService {
         });
     }
 
-    public static deleteExistingMenuItem(rl: readline.Interface, socket: any) {
+    public static deleteMenuItem(rl: readline.Interface, socket: any) {
         rl.question('Enter Item ID: ', (item_Id) => {
             socket.emit('deleteExisitingMenuItem', { item_Id });
             this.viewMenu(rl, socket);
+        });
+    }
+
+    public  static updateItemAvailability(rl: readline.Interface,socket:any) {
+        rl.question('Enter menu item ID to update availability:', (item_Id) => {
+            rl.question('Is the item available? (1 for Yes/0 for No):', (availability_status) => {
+            socket.emit('updateItemAvailability', { item_Id,availability_status });
+            this.viewMenu(rl, socket);
+
+            });
         });
     }
 }
