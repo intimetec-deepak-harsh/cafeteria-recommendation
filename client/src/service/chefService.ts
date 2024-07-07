@@ -1,63 +1,76 @@
 import readline from 'readline';
-
+import { Socket } from 'socket.io-client';
+import { MealType, Recommendation } from "../interface/recommendation";
+import UserPromptUtils from '../utils/userPrompt';
 
 class ChefService {
+    private promptUtils: UserPromptUtils;
 
-  public static viewMenu(rl: readline.Interface, socket: any) {
-        console.log('1. View Menu Items');
+    constructor(private rl: readline.Interface, private socket: Socket) {
+        this.promptUtils = new UserPromptUtils(this.rl);
+    }
+
+    public viewMenu() {
+        console.log('1. View All Menu Items');
         console.log('2. View Meal Types');
         console.log('3. View Notifications');
         console.log('4. Send Notification');
         console.log('5. View Recommendations');
         console.log('6. View Available Food Items');
-        console.log('7. View Feedbacks.');
+        console.log('7. View Voted Items');
+        console.log('8. View Discard Menu List');
+        console.log('9. View All the Feedbacks.');
+        console.log('10. Exit');
 
-        console.log('8. Exit');
-
-        rl.question('Select Option: ', (option) => {
-            this.handleMenuOption(option, rl, socket);
+        this.rl.question('Select Option: ', (option) => {
+            this.handleMenuOption(option);
         });
     }
 
-    public static handleMenuOption(option: string, rl: readline.Interface,socket: any): void {
+    private handleMenuOption(option: string): void {
         switch (option) {
             case '1':
-                this.viewAllMenuItems(rl, socket);
+                this.viewAllMenuItems();
                 break;
             case '2':
-                 this.viewMealTypes(rl, socket);
+                this.viewMealTypes();
                 break;
             case '3':
-                // this.viewNotifications(rl, socket);
+                // this.viewNotifications();
                 break;
             case '4':
-                // this.sendNotification(rl, socket);
+                // this.sendNotification();
                 break;
             case '5':
-                this.showRecommendationMenuItem(rl, socket);
+                this.viewFoodRecommendationForMeal();
                 break;
             case '6':
-                this.viewAvailableFoodItems(rl, socket);
+                this.viewAvailableFoodItems();
                 break;
             case '7':
-                this.viewFeedbacks(rl, socket);
+                this.viewVotedItem();
                 break;
             case '8':
+                this.viewDiscardMenuList();
+                break;
+            case '9':
+                this.viewFeedbacks();
+                break;
+            case '10':
                 console.log('Exiting...');
-                rl.close();
-                socket.disconnect();
+                this.rl.close();
+                this.socket.disconnect();
                 break;
             default:
                 console.log('Invalid option, please try again.');
-                this.viewAllMenuItems(rl, socket);
+                this.viewMenu();
                 break;
         }
     }
 
-
-    public static viewAllMenuItems(rl: readline.Interface, socket: any) {
-        socket.emit('viewMenu');
-        socket.on('MenuDetails', (data: any) => {
+    private viewAllMenuItems() {
+        this.socket.emit('viewMenu');
+        this.socket.on('MenuDetails', (data: any) => {
             const tableData = data.showMenu.map((item: any) => ({
                 Id: item.item_Id,
                 Name: item.item_name,
@@ -67,13 +80,13 @@ class ChefService {
                 Availability: item.availability_status === 1 ? 'Yes' : 'No'
             }));
             console.table(tableData);
-            this.viewMenu(rl,socket);
+            this.viewMenu();
         });
     }
 
-    public static viewFeedbacks(rl: readline.Interface, socket: any) {
-        socket.emit('viewFeedback');
-        socket.on('viewFeedback', (feedbackData: any) => {
+    private viewFeedbacks() {
+        this.socket.emit('viewFeedback');
+        this.socket.on('viewFeedback', (feedbackData: any) => {
             console.table(feedbackData.showFeedback.map((item: any) => ({
                 'User': item.user_name,
                 'Item': item.item_name,
@@ -81,33 +94,119 @@ class ChefService {
                 'Comments': item.Comment
             })));
             console.log('---------------------------------------');
-            this.viewMenu(rl, socket);
+            this.viewMenu();
         });
     }
-    
 
-    public  static showRecommendationMenuItem(rl: readline.Interface, socket: any) {
-        console.log('Showing recommendation menu items...');
-        socket.emit('viewRecommendation');
-        // socket.on('MenuDetails', (data: any) => {
-        //     const tableData = data.showMenu.map((item: any) => ({
-        //         Id: item.item_Id,
-        //         Name: item.item_name,
-        //         'Meal Type': item.meal_type,
-        //         Rating: item.rating,
-        //         Price: item.price,
-        //         Availability: item.availability_status === 1 ? 'Yes' : 'No'
-        //     }));
-        //     console.table(tableData);
-        //     this.viewMenu(rl,socket);
-        // });
-        // this.viewMenu(rl,socket);
+    private async viewVotedItem() {
+        // Implementation for viewing voted items
+    }
+
+    private async viewDiscardMenuList() {
+        // Implementation for viewing discard menu list
+    }
+
+    private async viewFoodRecommendationForMeal() {
+        console.log('Type 1 for Breakfast');
+        console.log('Type 2 for Lunch');
+        console.log('Type 3 for Dinner');
+
+        const categoryChoice = await this.promptUtils.askQuestion('Enter choice: ');
+       
+        let category: string;
+        switch (categoryChoice) {
+            case '1':
+                category = 'Breakfast';
+                break;
+            case '2':
+                category = 'Lunch';
+                break;
+            case '3':
+                category = 'Dinner';
+                break;
+            default:
+                console.log('Invalid choice, defaulting to Breakfast.');
+                category = 'Breakfast';
+                break;
+        }
+        
+        this.socket.emit('getRecommendedFood', category );
+        this.socket.on('getRecommendedFood', (Recommendation: any) => {
+            
+            console.table(Recommendation.showRecommendation.map((item: any) => ({
+                'Item Id': item.itemId,
+                'Item': item.foodItem,
+                'Rating': item.avgRating,
+                'Sentiment': item.avgSentimentRating,
+                'Average': item.combinedAvg
+            })));
+            console.log('---------------------------------------');
+            this.viewMenu();
+        });
+    }
+
+    public async rolloutRecommendedMenu(){
+        const selectedItemId = await this.promptUtils.askQuestion('Enter all the itemId you want to roll out: ');
+        this.socket.emit('rolloutRecommendedFood', { selectedItemId });
+    }
+
+    private async viewVotedItems(){
+        console.log('Type 1 for Breakfast');
+        console.log('Type 2 for Lunch');
+        console.log('Type 3 for Dinner');
+        
+        const categoryChoice = await this.promptUtils.askQuestion('Enter choice: ');
+
+        let category: string;
+        switch (categoryChoice) {
+            case '1':
+                category = 'Breakfast';
+                break;
+            case '2':
+                category = 'Lunch';
+                break;
+            case '3':
+                category = 'Dinner';
+                break;
+            default:
+                console.log('Invalid choice, defaulting to Breakfast.');
+                category = 'Breakfast';
+                break;
+        }
+        // return category;
+        await this.socket.emit('viewVotes', { category });
+    }
+
+    private async userInput(){
+        console.log('Type 1 for Breakfast');
+        console.log('Type 2 for Lunch');
+        console.log('Type 3 for Dinner');
+        
+        const categoryChoice = await this.promptUtils.askQuestion('Enter choice: ');
+
+        let category: string;
+        switch (categoryChoice) {
+            case '1':
+                category = 'Breakfast';
+                break;
+            case '2':
+                category = 'Lunch';
+                break;
+            case '3':
+                category = 'Dinner';
+                break;
+            default:
+                console.log('Invalid choice, defaulting to Breakfast.');
+                category = 'Breakfast';
+                break;
+        }
+        return category;
     }
 
 
-    public static viewAvailableFoodItems(rl: readline.Interface, socket: any) {
-        socket.emit('viewAvailableMenuItem');
-        socket.on('MenuDetails', (data: any) => {
+    private viewAvailableFoodItems() {
+        this.socket.emit('viewAvailableMenuItem');
+        this.socket.on('MenuDetails', (data: any) => {
             const tableData = data.showMenu.map((item: any) => ({
                 Name: item.item_name,
                 'Meal Type': item.meal_type,
@@ -115,22 +214,20 @@ class ChefService {
                 Price: item.price,
             }));
             console.table(tableData);
-            this.viewMenu(rl,socket);
+            this.viewMenu();
         });
-
     }
 
-    public static viewMealTypes(rl: readline.Interface, socket: any) {
-        socket.emit('viewMealType');
-        socket.on('MenuDetails', (data: any) => {
+    private viewMealTypes() {
+        this.socket.emit('viewMealType');
+        this.socket.on('MenuDetails', (data: any) => {
             const tableData = data.showMenu.map((item: any) => ({
-              'Meal Type': item.meal_type,
-           }));
+                'Meal Type': item.meal_type_name,
+            }));
             console.table(tableData);
-            this.viewMenu(rl,socket);
+            this.viewMenu();
         });
     }
 }
-
 
 export default ChefService;

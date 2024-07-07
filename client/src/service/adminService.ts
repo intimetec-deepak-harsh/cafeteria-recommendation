@@ -7,6 +7,7 @@ class AdminService {
         console.log('3. Update Menu Items');
         console.log('4. Delete Menu Items');
         console.log('5. Update Menu Availability');
+        console.log('6. View Logs');
         console.log('8. Exit');
 
         rl.question('Select Option: ', (option) => {
@@ -31,6 +32,9 @@ class AdminService {
             case '5':
                 this.updateItemAvailability(rl,socket);
                 break;
+            case '6':
+                this.viewLogs(rl,socket);
+                break;    
             case '8':
                 console.log('Exiting...');
                 rl.close();
@@ -60,9 +64,25 @@ class AdminService {
         });
     }
 
+
+    //view logs
+    public static viewLogs(rl: readline.Interface, socket: any) {
+        socket.emit('viewLogs');
+        socket.on('viewLogs', (Logs: any) => {
+            console.table(Logs.showLogs.map((item: any) => ({
+                'User': item.user_id,
+                'Action': item.action,
+                'Time': item.timestamp,
+            })));
+            console.log('---------------------------------------');
+            this.viewMenu(rl, socket);
+        });
+    }
+    
+
     public static addMenuItem(rl: readline.Interface, socket: any) {
         rl.question('Enter Item Name: ', (item_name) => {
-            rl.question('Enter Meal Type(breakfast/lunch/dinner): ', (meal_type) => {
+            rl.question('Enter Meal Type(1. for Breakfast/ 2. for lunch/ 3. for dinner): ', (meal_type) => {
                 rl.question('Enter Price: ', (price) => {
                     rl.question('Enter Availability (1 for Yes/0 for No): ', (availability_status) => {
                         rl.question('Enter rating: ', (rating) => {

@@ -1,91 +1,97 @@
-// import SentimentAnalysisService from '../services/sentimentService';
-// import { Recommendation } from '../interface/recommendation';
-// import { connectDB, getDbConnection } from '../database/connection';
+import {db} from '../database/connection';
+import { Engine } from '../recommendationEngine/engine';
+import { FeedbackData } from '../recommendationEngine/Interface/feedbackData';
+import { FeedbackService } from './feedbackService';
 
-// class RecommendationService {
-//     async generateRecommendation(menuItemId: number): Promise<Recommendation> {
-//         try {
-//             const db = await connectDB(); // Establish connection
-//             const { averageRating, averageSentimentScore } = await SentimentAnalysisService.calculateAverageSentiment(menuItemId);
-//             console.log(averageRating, averageSentimentScore);
+class RecommendationService {
+    private feedbackService: FeedbackService;
 
-//             const [rows] = await db.query<Recommendation[]>(
-//                 'INSERT INTO recommendations (menuItem_id, averageRating, averageSentimentScore, recommendation_date) VALUES (?, ?, ?, NOW())',
-//                 [menuItemId, averageRating, averageSentimentScore]
-//             );
-//             console.log(rows);
-//             db.end(); // Close the connection
-
-//             return rows[0];
-//         } catch (error) {
-//             console.error('Error generating recommendation:', error);
-//             throw error;
-//         }
-//     }
-
-//     async getRecommendations(): Promise<Recommendation[]> {
-//         try {
-//             const db = await connectDB(); // Establish connection
-//             const [rows] = await db.query<Recommendation[]>(
-//                 'SELECT * FROM recommendations'
-//             );
-
-//             db.end(); // Close the connection
-
-//             return rows;
-//         } catch (error) {
-//             console.error('Error fetching recommendations:', error);
-//             throw error;
-//         }
-//     }
-// }
-
-// export default new RecommendationService();
-
-
-
-
-import Sentiment from "sentiment";
-import FeedbackData  from "../interface/feedback";
-
-class EngineSentimentAnalysisService {
-  private sentiment: Sentiment;
-
-  constructor() {
-    this.sentiment = new Sentiment();
-  }
-
-  async analyzeFeedbackSentiments(
-    feedbacks: FeedbackData[]
-  ): Promise<{ feedback_id: number; sentiment: number }[]> {
-    const sentimentResults = feedbacks.map((feedback) => {
-      const result = this.sentiment.analyze(feedback.comment);
-      return {
-        feedback_id: feedback.feedback_id,
-        sentiment: result.score,
-        rating: feedback.rating,
-      };
-    });
-
-    return sentimentResults;
-  }
-
-  async calculateAverageSentiment(feedbacks: FeedbackData[]): Promise<number> {
-    const sentimentResults =
-      await engineSentimentAnalysisService.analyzeFeedbackSentiments(feedbacks);
-
-    let totalSentiment = 0;
-    for (const feedback of feedbacks) {
-      const sentiment =
-        sentimentResults.find(
-          (result) => result.feedback_id === feedback.feedback_id
-        )?.sentiment || 0;
-      totalSentiment += sentiment;
+    constructor(feedbackService: FeedbackService) {
+        this.feedbackService = feedbackService;
     }
 
-    const averageSentiment = totalSentiment / feedbacks.length;
-    return averageSentiment;
-  }
+    public async getRecommendedFood(category: string) {
+        const feedbackData = await this.feedbackService.getFeedbackByCategory(category);
+        const feedback = feedbackData.map(row => ({ 
+            
+            item_Id: row.item_Id,
+            foodItem: row.foodItem,
+            comment: row.Comment,
+            rating: row.Rating
+        })) as FeedbackData[];
+
+        const analyzer = new Engine(feedback);
+        return analyzer.getTop5ByCombinedAvg();
+    }
+
+    public async analyzeRolloutInput(itemId: any) {
+        const connection = db;
+        if (connection) {
+            console.log('Received itemId:', itemId.selectedItemId); 
+            const idsArray = itemId.selectedItemId.split(',').map((id: string) => id.trim());
+            if (idsArray.length === 0) {
+                throw new Error('No item IDs provided.');
+            }
+            const rawQuery = `SELECT * FROM MenuItem WHERE itemId IN (${idsArray.map((id: any) => `'${id}'`).join(',')})`;
+            const [data] = await connection.query(rawQuery);
+            this.processRecommendedItems(data);
+            console.log(data)
+            return data;
+        } else {
+            throw new Error('No database connection.');
+        }
+    }
+
+    public async checkIfDataExists( category: string): Promise<boolean> {
+        const connection = db;
+        const checkQuery = `
+            SELECT COUNT(*) as count FROM recommendedItem 
+            WHERE category = ? AND DATE(rolloutDate) = CURDATE()
+        `;
+        const [rows] = await connection!.execute(checkQuery, [category]);
+        const count = (rows as any)[0].count;
+        return count > 0;
+    }
+
+
+    public async processRecommendedItems(recommendedItems:any) {
+        console.log(recommendedItems[0].category);
+        try {
+            const dataExists = await this.checkIfDataExists(recommendedItems[0].category);
+            if (dataExists) {
+                console.log(`Data for category "${recommendedItems[0].category}" and today is already present.`);
+            } else {
+                await this.insertRecommendedItems(recommendedItems);
+            }
+      
+            console.log('Operation completed.');
+        } catch (error) {
+            console.error('Error processing recommended items:', error);
+        }
+    }
+    
+    public async insertRecommendedItems(recommendedItems:any) {
+        const connection = db;
+        try {
+            const insertQuery = `
+            INSERT INTO recommendedItem (itemId, itemName, category, rating, rolloutDate, vote)
+            VALUES (?, ?, ?, ?, NOW(), 0)
+            `;
+            for (const item of recommendedItems) {
+                await connection!.execute(insertQuery, [
+                    item.ItemId,
+                    item.ItemName,
+                    item.category,
+                    parseFloat(item.rating),
+                ]);
+                console.log(`Inserted item: ${item.ItemName}`);
+            }
+      
+            console.log('All recommended items inserted successfully.');
+        } catch (error) {
+            console.error('Error inserting recommended items:', error);
+        }
+    }
 }
 
-export const engineSentimentAnalysisService =   new EngineSentimentAnalysisService();
+export default RecommendationService;

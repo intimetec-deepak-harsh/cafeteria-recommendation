@@ -3,9 +3,7 @@ import { RowDataPacket } from 'mysql2/promise';
 import { User } from '../interface/user';
 import { Role } from '../interface/role';
 import { MenuItem } from '../interface/menuItem';
-// import { FeedbackData } from '../interface/feedback';
-
-
+import { MealType } from '../interface/menuItem';
 
 class UserService {
     public async authenticateUser(email: string, password: string): Promise<User[]> {
@@ -30,6 +28,13 @@ class UserService {
         return rows;
     }
 
+    public static async getUsers(): Promise<User[]> {
+        const [rows] = await db.execute<User[]>(
+            'SELECT * FROM users',          
+        );
+        return rows;
+    }
+
     public async getMenu(): Promise<MenuItem[]> {
         const [rows] = await db.execute<MenuItem[]>(
             'SELECT * FROM MenuItem',          
@@ -46,7 +51,6 @@ class UserService {
             [item_name, meal_type, rating, price, availability_status]
         );
     }
-
 
     public async updateExisitingMenuItem(data:any): Promise<void> {
         console.log('show',data)
@@ -104,6 +108,8 @@ class UserService {
             [user,item_Id, Comment,Rating,feedbackDate]
         );
     }
+   
+
 
     public async  updateItemAvailability(data:any): Promise<void> {
         console.log('Data here ', data);
@@ -131,83 +137,14 @@ class UserService {
         return rows;
     }
 
-    public async getMealType(): Promise<MenuItem[]> {
-        const [rows] = await db.execute<MenuItem[]>(
-            'SELECT Distinct meal_type FROM menuitem',          
+    public async getMealType(): Promise<MealType[]> {
+        const [rows] = await db.execute<MealType[]>(
+            'SELECT Distinct meal_type_name FROM meal_type',          
         );
         return rows;
     }
 
-    // public async createRecommendation(req: Request, res: Response) {
-    //     const { menuItemId } = req.body;
     
-    //     try {
-    //       const recommendation = await recommendationService.generateRecommendation(menuItemId);
-    //       res.status(201).json({ recommendation });
-    //     } catch (error) {
-    //       res.status(500).json({ error: error.message });
-    //     }
-    //   }
-    
-    //   public async getRecommendations(req: Request, res: Response) {
-    //     try {
-    //       const recommendations = await recommendationService.getRecommendations();
-    //       res.status(200).json({ recommendations });
-    //     } catch (error) {
-    //       res.status(500).json({ error: error.message });
-    //     }
-    //   }
-
-    // public async getRecommendations(): Promise<Recommendation[]> {
-    //     const [rows] = await db.execute<Recommendation[]>(
-    //         'SELECT * FROM Recommendation'
-    //     );
-    //     return rows;
-    // }
-
-//    public async generateRecommendation(menuItemId: number): Promise<Recommendation> {
-//         try {
-//             const { averageRating, averageSentimentScore } = await SentimentAnalysisService.calculateAverageSentiment(menuItemId);
-//             console.log(averageRating, averageSentimentScore);
-
-//             const [rows] = await db.query<Recommendation[]>(
-//                 'INSERT INTO recommendations (menuItem_id, averageRating, averageSentimentScore, recommendation_date) VALUES (?, ?, ?, NOW())',
-//                 [menuItemId, averageRating, averageSentimentScore]
-//             );
-//             console.log(rows);
-//             db.end(); // Close the connection
-
-//             return rows[0];
-//         } catch (error) {
-//             console.error('Error generating recommendation:', error);
-//             throw error;
-//         }
-//     }
-
-//     public async getRecommendations(): Promise<Recommendation[]> {
-//         try {
-//             const [rows] = await db.query<Recommendation[]>(
-//                 'SELECT * FROM recommendations'
-//             );
-
-//             db.end(); // Close the connection
-
-//             return rows;
-//         } catch (error) {
-//             console.error('Error fetching recommendations:', error);
-//             throw error;
-//         }
-//     }
-
-
 }
 
 export default UserService;
-
-
-
-//----------------------
-//(no of rating / total number of person + sentiments score / total number of person)   / 2
-
-//ex: menuitem : 5 ( fries)
-//10 users ( average of rating)

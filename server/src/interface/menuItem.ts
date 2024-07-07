@@ -13,3 +13,9 @@ export interface MenuItem  extends RowDataPacket{
 export interface MenuDetails {
      showMenu: MenuItem[];
  }
+
+
+ export interface MealType extends RowDataPacket {
+    id: number;
+    meal_type_name: string;
+ }

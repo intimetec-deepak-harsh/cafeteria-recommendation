@@ -1,45 +1,18 @@
-// import Sentiment from "sentiment";
-// import { FeedbackData } from "../../src/interface/feedback";
- 
-// class SentimentAnalysisService {
-//   private sentiment: Sentiment;
- 
-//   constructor() {
-//     this.sentiment = new Sentiment();
-//   }
- 
-//   async analyzeFeedbackSentiments(
-//     feedbacks: FeedbackData[]
-//   ): Promise<{ feedback_id: number; sentiment: number }[]> {
-//     const sentimentResults = feedbacks.map((feedback) => {
-//       const result = this.sentiment.analyze(feedback.comment);
-//       console.log('result here',result);
-      
-//       return {
-//         feedback_id: feedback.feedback_id,
-//         // comment: feedback.comment,
-//         sentiment: result.score,
-//         rating: feedback.rating,
-//       };
-//     });
- 
-//     return sentimentResults;
-//   }
-// }
- 
-// export default SentimentAnalysisService ;
 import Sentiment from 'sentiment';
-import FeedbackData from '../interface/feedback'; 
+import {FeedbackData} from '../interface/feedback'; 
 import { getDbConnection } from '../database/connection'; 
 import mysql from 'mysql2/promise';
 
 class SentimentService {
+    analyze(Comment: any) {
+        throw new Error('Method not implemented.');
+    }
     private sentiment: Sentiment;
     private db: mysql.Connection;
 
     constructor() {
         this.sentiment = new Sentiment();
-        this.db = getDbConnection(); // Get the database connection
+        this.db = getDbConnection();
     }
 
     analyzeComment(comment: string): number {

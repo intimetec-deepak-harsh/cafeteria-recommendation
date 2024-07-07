@@ -5,6 +5,7 @@ class EmployeeService {
   public static viewMenu(rl: readline.Interface, socket: any) {
         console.log('1. View All Menu Items');
         console.log('2. Give Feedback');
+        console.log('3. View Notification');
         console.log('5. Exit');
 
         rl.question('Select Option: ', (option) => {
@@ -12,7 +13,10 @@ class EmployeeService {
                 EmployeeService.viewAllMenuItem(rl,socket);
             } else if (option === '2') {
                 this.giveFeedback(rl,socket);
-            } else if (option === '5') {
+            } else if (option === '3') {
+                this.seeNotifications(rl,socket);
+            } 
+             else if (option === '5') {
                 console.log('Exiting...');
                 rl.close();
                     socket.disconnect();
@@ -55,6 +59,22 @@ class EmployeeService {
             });
 
     }
+
+
+    
+    public static async seeNotifications(rl: readline.Interface, socket: any) {
+            socket.emit('seeNotifications'); 
+            socket.on('showNotification', (Notification: any) => {
+                console.table(Notification.showNotifications.map((item: any) => ({
+                    'Id': item.notification_id,
+                    'Type':item.notification_type,
+                    'Message':item.message,
+                    'Date':item.notification_date
+                })));
+              console.log('---------------------------------------');
+              this.viewMenu(rl, socket); 
+            });   
+        }
 }
 
 

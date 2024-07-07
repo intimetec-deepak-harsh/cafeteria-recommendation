@@ -1,14 +1,25 @@
 import { Socket } from 'socket.io';
-import UserService from '../controller/authController';
-import { engineSentimentAnalysisService } from '../services/recommendationService';
+import UserService from './userService';
+import MenuService from '../services/menuService';
+import LogService from '../services/LogService';
+import NotificationService from '../services/notificationService';
+import RecommendationService from '../services/recommendationService'
+import { FeedbackService } from './feedbackService';
 
 class SocketHandler {
     private userService: UserService;
-    // private EngineSentimentAnalysisService: engineSentimentAnalysisService;
+    private menuService: MenuService;
+    private LogService: LogService ;
+    private NotificationService: NotificationService;
+    private RecommendationService: RecommendationService;
 
     constructor() {
         this.userService = new UserService();
-        // this.EngineSentimentAnalysisService = new this.engineSentimentAnalysisService();
+        this.menuService = new MenuService();
+        this.LogService = new LogService();
+        this.NotificationService = new NotificationService();
+        const feedbackService = new FeedbackService();
+         this.RecommendationService = new RecommendationService(feedbackService);
     }
 
     public setupSocketEvents(socket: Socket): void {
@@ -38,6 +49,14 @@ class SocketHandler {
                     } else {
                         socket.emit('authentication_failed', 'Role not found');
                     }
+                    //log data here
+                    const action = `${userName} logged in as ${role[0].role}`;
+                    console.log('see action:', action);
+                    const logOutput = await LogService.insertIntoLog(
+                      action,
+                      user[0].userId as number
+                    );
+
                 } else {
                     socket.emit('authentication_failed', 'Authentication failed, Invalid User Credentials');
                 }
@@ -46,6 +65,7 @@ class SocketHandler {
                 socket.emit('error', 'Error occurred during authentication');
             }
         });
+        
 
         socket.on('viewMenu', async () => {     
             const showMenu = await this.userService.getMenu();
@@ -102,6 +122,18 @@ class SocketHandler {
             }
         });
 
+        socket.on('getRecommendedFood', async (category) => {              
+        const showRecommendation = await this.RecommendationService.getRecommendedFood(category);     
+        console.log(showRecommendation);
+
+        if (showRecommendation && showRecommendation.length > 0) {
+            const showRecommendationData = {showRecommendation}; 
+           
+            socket.emit('getRecommendedFood', showRecommendationData);
+             
+        }
+        });
+
         socket.on('updateExisitingMenuItem', async (data) => {
             console.log('check data',data);
             
@@ -136,11 +168,32 @@ class SocketHandler {
                 const Feedbacks = {showFeedback}; 
                
                 socket.emit('viewFeedback', Feedbacks);
-            }else {
-
             }
+           });
 
-        });
+           socket.on('viewLogs', async () => {     
+            const showLogs = await this.LogService.getLog();
+            console.log(showLogs);
+
+            if (showLogs && showLogs.length > 0) {
+                const Logs = {showLogs}; 
+               
+                socket.emit('viewLogs', Logs);
+            }
+           });
+
+           socket.on('seeNotifications', async () => {     
+            const showNotifications = await this.NotificationService.seeNotifications();
+            console.log(showNotifications);
+
+            if (showNotifications && showNotifications.length > 0) {
+                const Notifications = {showNotifications}; 
+
+                socket.emit('showNotification', Notifications);
+            }
+           });  
+ 
+
 
         socket.on('giveFeedback', async (data) => {
             const {userId, item_Id, Comment, Rating,feedbackDate} = data;
@@ -168,11 +221,7 @@ class SocketHandler {
                 socket.emit('error','Error occurred during authentication'); 
             }
         });
-
-
-
-
-     
+   
 
         socket.on('disconnect', () => {
             console.log('Connection closed for socket ID:', socket.id);

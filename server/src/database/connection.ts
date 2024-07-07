@@ -15,6 +15,3 @@ export const connectDB = async () => {
     return db;
 };
 export const getDbConnection = () => db;
-
-
-

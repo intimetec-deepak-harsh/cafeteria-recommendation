@@ -35,7 +35,7 @@ const handleRoleBasedNavigation = (role: string) => {
             AdminService.viewMenu(rl, socket);
             break;
         case 'Chef':
-            ChefService.viewMenu(rl, socket);
+                 new  ChefService(rl, socket).viewMenu();
             break;
         case 'Employee':
             EmployeeService.viewMenu(rl, socket);
