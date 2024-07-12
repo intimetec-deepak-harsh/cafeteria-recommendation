@@ -1,27 +1,35 @@
 import { io } from 'socket.io-client';
 import readline from 'readline';
-import AdminService from '../client/src/service/adminService';
-import ChefService from '../client/src/service/chefService';
-import EmployeeService from '../client/src/service/employeeService';
+import AdminService from './src/service/adminService';
+import ChefService from './src/service/chefService';
+import EmployeeService from './src/service/employeeService';
 
 
-const rl = readline.createInterface({
+class App {
+    private  rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
-});
+    });
 
-let username: string;
-const socket = io('http://localhost:8080');
+private  username: string | undefined;
+private  userId: number| undefined;
+private  socket = io('http://localhost:8080');
+private userRole: string | undefined;
+
+constructor() {
+    this.setupSocketListeners();
+    this.authenticateUser();
+}
 
 //function to authenticate user email and password
-const authenticateUser = () => {
-    rl.question('Enter email: ', (email) => {
-        rl.question('Enter password: ', (password) => {
-            socket.emit('authenticate', { email, password },(error: any) => {
+public authenticateUser = () => {
+    this.rl.question('Enter email: ', (email) => {
+        this.rl.question('Enter password: ', (password) => {
+            this.socket.emit('authenticate', { email, password },(error: any) => {
 
-                                if (error) {
+            if (error) {
                     console.error('Authentication failed:', error);
-                    rl.close();
+                    this.rl.close();
                 }
             });
         });
@@ -29,74 +37,130 @@ const authenticateUser = () => {
 };
 
 // Function to handle role-based navigation after authentication
-const handleRoleBasedNavigation = (role: string) => {
+private handleRoleBasedNavigation = (role: string) => {
     switch (role) {
         case 'Admin':
-            AdminService.viewMenu(rl, socket);
+            new AdminService(this.rl, this.socket).viewMenu();
             break;
         case 'Chef':
-                 new  ChefService(rl, socket).viewMenu();
+            new ChefService(this.rl, this.socket).viewMenu();
             break;
         case 'Employee':
-            EmployeeService.viewMenu(rl, socket);
+           new EmployeeService(this.rl, this.socket).viewMenu(this.userId!);
             break;
         default:
-            rl.close();
+            this.rl.close();
             break;
     }
 };
 
+
+public setupSocketListeners = () => {
+
+    var userRole = 'Employee';
+
+
 // Event listener when socket connects to server
-socket.on('connect', () => {
-    console.log('Connected to server with ID:', socket.id);
+this.socket.on('connect', () => {
+    console.log('Connected to server with ID:', this.socket.id);
     console.log('successfully connected with server');
-    authenticateUser();
+    this.authenticateUser();
 });
 
 // Event listener when user is authenticated
-socket.on('user',(message)=> {
- username = message;
+this.socket.on('user',(message)=> {
+    console.log('see user',message)
+    this.username = message;
 });
 
-socket.on('authenticated', (message) => {
+
+// Event listener when user is authenticated
+this.socket.on('userID',(message)=> {
+    console.log('see userID',message)
+    this.userId = message;
+});
+
+this.socket.on('authenticated', (message) => {
     console.log(message);
 });
 
 // Event listener when user's role is received
-socket.on('role', (message) => {
-    console.log(`Welcome, ${username} to Cafeteria Recommendation. Your Role is: ${message}`);
+this.socket.on('role', (message) => {
+    console.log(`Welcome, ${this.username} to Cafeteria Recommendation. Your Role is: ${message}`);
     console.log('--------------------------------------------');
     const role = message;
-    handleRoleBasedNavigation(role);
+    this.handleRoleBasedNavigation(role);
 });
 
-socket.on('menuItemAdded', (message) => {
+
+this.socket.on('authentication_failed', (message) => {
+    console.error('Authentication failed:', message);
+    this.authenticateUser(); // Prompt the user to try again
+});
+
+
+
+this.socket.on('recommendedItemsByChef', (recommendedItems: any[]) => {
+    console.log('_____________________________________________________________________');
+    console.log('Recommended Food:');
+    console.table(recommendedItems.map(item => ({
+        ItemId : item.item_Id,
+        ItemName: item.item_name,
+        // Category: item.category,
+        Rating: item.rating,
+        // Vote: item.vote
+    })));
+    console.log('_____________________________________________________________________');
+    if(userRole === 'Admin'){
+       new AdminService(this.rl, this.socket).viewMenu();
+    }else if (userRole === 'Chef'){
+        new ChefService(this.rl, this.socket).viewMenu();
+    }
+});
+
+// Event listener for general errors
+this.socket.on('error', (message) => {
+    console.error('Error:', message);
+    this.rl.close();
+});
+
+this.socket.on('menuItemAdded', (message) => {
     console.log(message);
     console.log('---------------------------------------');
-    AdminService.viewMenu(rl,socket);
+    new AdminService(this.rl,this.socket).viewMenu();
 });
 
-socket.on('menuItemUpdated', (message) => {
+this.socket.on('menuItemUpdated', (message) => {
     console.log(message);
     console.log('---------------------------------------');
-    AdminService.viewMenu(rl,socket);
+    new AdminService(this.rl,this.socket).viewMenu();
 });
 
-socket.on('menuItemDeleted', (message) => {
+this.socket.on('menuItemDeleted', (message) => {
     console.log(message);
     console.log('---------------------------------------');
-    AdminService.viewMenu(rl,socket);
+    new AdminService(this.rl,this.socket).viewMenu();
 });
 
-socket.on('feedbackAdded', (message) => {
+this.socket.on('feedbackAdded', (message) => {
     console.log(message);
     console.log('---------------------------------------');
-    EmployeeService.viewMenu(rl,socket);
+   new EmployeeService(this.rl,this.socket).viewMenu(this.userId!);
 });
 
-socket.on('disconnect', () => {
+this.socket.on('ProfileUpdated', (message) => {
+    console.log(message);
+    console.log('---------------------------------------');
+   new EmployeeService(this.rl,this.socket).viewMenu(this.userId!);
+});
+
+this.socket.on('disconnect', () => {
     console.log('Disconnected from server');
-    rl.close();
+    this.rl.close();
 });
+ 
 
-export { rl, socket };
+};
+}
+export default  App ;
+new App();

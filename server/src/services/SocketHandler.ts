@@ -4,7 +4,8 @@ import MenuService from '../services/menuService';
 import LogService from '../services/LogService';
 import NotificationService from '../services/notificationService';
 import RecommendationService from '../services/recommendationService'
-import { FeedbackService } from './feedbackService';
+import  FeedbackService  from './feedbackService';
+import DateService from './DateService';
 
 class SocketHandler {
     private userService: UserService;
@@ -12,6 +13,8 @@ class SocketHandler {
     private LogService: LogService ;
     private NotificationService: NotificationService;
     private RecommendationService: RecommendationService;
+    // private FeedbackService: FeedbackService;
+    private feedbackService: FeedbackService = new FeedbackService;
 
     constructor() {
         this.userService = new UserService();
@@ -31,10 +34,16 @@ class SocketHandler {
 
             try {
                 const user = await this.userService.authenticateUser(email, password);
+                console.log('see user details',user);
+                
                 if (user && user.length > 0) {
                     console.log('Authenticated User:', user[0]); 
                     const userName = user[0].name;                    
                     socket.emit('user', userName);
+                    const userID = user[0].userId;       
+
+                    socket.emit('userID', userID);
+                    socket.emit('authenticated', 'Authentication successful');
                     socket.emit('authenticate', email);
                     const roleId = user[0].roleId;                    
                     console.log('Role ID:', roleId); 
@@ -46,17 +55,16 @@ class SocketHandler {
                     if (role && role.length > 0) {
                         const roleName = role[0].role;                       
                         socket.emit('role', roleName);
-                    } else {
-                        socket.emit('authentication_failed', 'Role not found');
-                    }
+
+                  
                     //log data here
                     const action = `${userName} logged in as ${role[0].role}`;
                     console.log('see action:', action);
-                    const logOutput = await LogService.insertIntoLog(
-                      action,
-                      user[0].userId as number
-                    );
+                    await LogService.insertIntoLog(action, user[0].userId as number);
 
+                    } else {
+                        socket.emit('authentication_failed', 'Role not found');
+                    }
                 } else {
                     socket.emit('authentication_failed', 'Authentication failed, Invalid User Credentials');
                 }
@@ -110,11 +118,16 @@ class SocketHandler {
 
         socket.on('addNewMenuItem', async (data) => {
             const { item_name, meal_type,rating,price,availability_status} = data;
-            console.log('check data',data);
-            
+            console.log('check data',data);            
             try {
-           const addMenuItem =  await this.userService.addNewMenuItem(item_name, meal_type, rating, price, availability_status);
-                socket.emit('menuItemAdded', 'New menu item added successfully');
+           const menuId  =  await this.userService.addNewMenuItem(item_name, meal_type, rating, price, availability_status);
+            socket.emit('menuItemAdded', 'New menu item added successfully');
+
+              const type = 'menuUpdate';
+              const message = `New menu item '${item_name}' has been added in the list.`;
+
+              await NotificationService.addNotification(type, message, menuId);
+             console.log('Notification added successfully for the new menu item.');
                 
             } catch (error) {
                 console.error('Error adding new menu item:', error);
@@ -132,6 +145,27 @@ class SocketHandler {
             socket.emit('getRecommendedFood', showRecommendationData);
              
         }
+        });
+
+        socket.on('rolloutRecommendedFood', async (category) => {
+            try {
+                const recommendedItems = await this.RecommendationService.analyzeRolloutInput(category);
+                console.log('Recommended items',recommendedItems);
+                socket.emit('recommendedItemsByChef', recommendedItems);
+            } catch (error) {
+                console.error('Database query error:', error);
+                socket.emit('recommendedItemsByChef', 'Error in fetching feedback.');
+            }
+        });
+        
+        socket.on('viewVotes', async (itemCategory) =>{
+          
+            try{
+               const votedItems = await this.feedbackService.viewEmployeeVotes(itemCategory.category);
+                socket.emit('votedMenuItems','View all Votes successfully');
+            } catch(error) {
+                console.error('Database query error:', error);
+            }
         });
 
         socket.on('updateExisitingMenuItem', async (data) => {
@@ -196,11 +230,11 @@ class SocketHandler {
 
 
         socket.on('giveFeedback', async (data) => {
-            const {userId, item_Id, Comment, Rating,feedbackDate} = data;
+            const {user_Id, item_Id, Comment, Rating,feedbackDate} = data;
             console.log('check data for feedback',data);
             
             try {
-           const sendFeedback =  await this.userService.giveFeedback(userId,item_Id,Comment, Rating,feedbackDate);
+           const sendFeedback =  await this.userService.giveFeedback(user_Id,item_Id,Comment, Rating,feedbackDate);
                 socket.emit('feedbackAdded', 'Feedback added successfully');
                 
             } catch (error) {
@@ -209,19 +243,53 @@ class SocketHandler {
             }
         });
 
-        socket.on('updateItemAvailability', async (data) => {
-            console.log('check data',data);
-            
+        
+
+        socket.on('UpdateProfile', async (data) => {
+           
+            const { user_Id, user_dietary_preference, user_spice_level, user_cuisine_preference, user_sweet_tooth } = data;
+            console.log('check data for update profile', data);
+        
             try {
-           const updateMenuItemAvailability =  await this.userService.updateItemAvailability(data);
-                socket.emit('menuItemUpdated', 'Menu item Availability updated successfully');
-                
+                const updateUserProfile = await this.userService.updateProfile(user_Id, user_dietary_preference, user_spice_level, user_cuisine_preference, user_sweet_tooth);
+                socket.emit('ProfileUpdated', 'Profile Updated successfully');
             } catch (error) {
-                console.error('Error Updating menu item availability:', error);
-                socket.emit('error','Error occurred during authentication'); 
+                console.error('Error updating Profile:', error);
+                socket.emit('error', 'Error occurred during updating profile');
             }
         });
-   
+     
+        socket.on('updateItemAvailability', async (data) => {
+            try {
+                 await this.userService.updateItemAvailability(data);
+                socket.emit('menuItemUpdated', 'Menu item availability updated successfully');
+        
+                const menuId = data.item_Id;
+                const item_data = await this.userService.getSpecificMenu(menuId);
+        
+                if (item_data && item_data.length > 0) {
+                    const item_name = item_data[0].item_name;
+                    const type = 'availabilityChange';
+                    let message;
+        
+                    if (data.availability_status === '0') {
+                        message = `Menu item '${item_name}' not available`;
+                    } else {
+                        message = `Menu item '${item_name}' now available`;
+                    }
+        
+                    await NotificationService.addNotification(type, message, menuId);
+                    console.log('Notification added successfully for the updated menu item.');
+                } else {
+                    console.error('Item data is empty or invalid');
+                    socket.emit('error', 'Failed to retrieve item data');
+                }
+            } catch (error) {
+                console.error('Error updating menu item availability:', error);
+                socket.emit('error', 'Error occurred during authentication');
+            }
+        });
+        
 
         socket.on('disconnect', () => {
             console.log('Connection closed for socket ID:', socket.id);

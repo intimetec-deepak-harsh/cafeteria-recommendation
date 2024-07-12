@@ -4,6 +4,7 @@ import { User } from '../interface/user';
 import { Role } from '../interface/role';
 import { MenuItem } from '../interface/menuItem';
 import { MealType } from '../interface/menuItem';
+import { ResultSetHeader } from 'mysql2';
 
 class UserService {
     public async authenticateUser(email: string, password: string): Promise<User[]> {
@@ -14,6 +15,9 @@ class UserService {
             'SELECT * FROM Users WHERE email = ? AND password = ?',
             [email, password]
         );
+        if (rows.length === 0) {
+            throw new Error('Invalid email or password');
+        }
         return rows;
     }
 
@@ -42,14 +46,23 @@ class UserService {
         return rows;
     }
 
-    public async addNewMenuItem(item_name: string, meal_type: string, rating: string,price: number,availability_status:boolean): Promise<void> {
+    public async getSpecificMenu(item_Id:number): Promise<MenuItem[]> {
+        const [rows] = await db.execute<MenuItem[]>(
+            'SELECT * FROM MenuItem where item_Id = ?', [item_Id]          
+        );
+        return rows;
+    }
+
+    public async addNewMenuItem(item_name: string, meal_type: string, rating: string,price: number,availability_status:boolean): Promise<number> {
         if (!item_name || !meal_type || !rating || !price || !availability_status) {
             throw new Error('Item name, Meal Type, and rating must be provided');
         }
-        await db.execute(
+        const [result] =  await db.execute<ResultSetHeader>(
             'INSERT INTO menuitem (item_name, meal_type, rating, price, availability_status) VALUES (?, ?, ?, ?, ?)',
             [item_name, meal_type, rating, price, availability_status]
         );
+        return result.insertId;
+
     }
 
     public async updateExisitingMenuItem(data:any): Promise<void> {
@@ -98,14 +111,33 @@ class UserService {
     }
 
     public async giveFeedback(item_Id: number, userId: number,Comment: string,Rating: number,feedbackDate:Date): Promise<void> {
-        const user = +userId;
-        console.log('come inside',user, item_Id, Comment, Rating, feedbackDate)
+        let user = userId;
+        // console.log('come inside',user, item_Id, Comment, Rating, feedbackDate)
         if (!item_Id || !userId || !Comment || !Rating || !feedbackDate) {
             throw new Error('Item name, Feedback, and rating must be provided');
         }
         await db.execute(
             'INSERT INTO feedback (item_Id,userId,Comment,Rating,feedbackDate) VALUES (?, ?, ?, ?, ?)',
             [user,item_Id, Comment,Rating,feedbackDate]
+        );
+    }
+
+
+    // updateProfile
+
+    public async updateProfile(user_Id: number, user_dietary_preference: string, user_spice_level: string, user_cuisine_preference: string, user_sweet_tooth: number): Promise<void> {
+        const userId = +user_Id;
+
+        console.log('get user Id', userId);
+        console.log('come inside', user_Id, user_dietary_preference, user_spice_level, user_cuisine_preference, user_sweet_tooth);
+    
+        if (!user_Id || !user_dietary_preference || !user_spice_level || !user_cuisine_preference || user_sweet_tooth === undefined) {
+            throw new Error('User Preference must be provided');
+        }
+    
+        await db.execute(
+            'INSERT INTO preference (user_id, dietary_preference, spice_level, cuisine_preference, sweet_tooth) VALUES (?, ?, ?, ?, ?)',
+            [user_Id, user_dietary_preference, user_spice_level, user_cuisine_preference, user_sweet_tooth]
         );
     }
    

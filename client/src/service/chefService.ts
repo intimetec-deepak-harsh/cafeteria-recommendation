@@ -14,9 +14,9 @@ class ChefService {
         console.log('1. View All Menu Items');
         console.log('2. View Meal Types');
         console.log('3. View Notifications');
-        console.log('4. Send Notification');
-        console.log('5. View Recommendations');
-        console.log('6. View Available Food Items');
+        console.log('4. Rollout Menu item');
+        console.log('5. View Recommended Food');
+        console.log('6. View All Available Food Items');
         console.log('7. View Voted Items');
         console.log('8. View Discard Menu List');
         console.log('9. View All the Feedbacks.');
@@ -27,7 +27,7 @@ class ChefService {
         });
     }
 
-    private handleMenuOption(option: string): void {
+    private  handleMenuOption(option: string): void {
         switch (option) {
             case '1':
                 this.viewAllMenuItems();
@@ -36,10 +36,10 @@ class ChefService {
                 this.viewMealTypes();
                 break;
             case '3':
-                // this.viewNotifications();
+                this.viewNotifications();
                 break;
             case '4':
-                // this.sendNotification();
+                 this.rolloutRecommendedMenu();
                 break;
             case '5':
                 this.viewFoodRecommendationForMeal();
@@ -48,7 +48,7 @@ class ChefService {
                 this.viewAvailableFoodItems();
                 break;
             case '7':
-                this.viewVotedItem();
+                this.viewVotedItems();
                 break;
             case '8':
                 this.viewDiscardMenuList();
@@ -74,7 +74,7 @@ class ChefService {
             const tableData = data.showMenu.map((item: any) => ({
                 Id: item.item_Id,
                 Name: item.item_name,
-                'Meal Type': item.meal_type,
+                'Meal Type': item.meal_type === 1 ? 'Breakfast' : item.meal_type === 2 ? 'Lunch' : item.meal_type === 3 ? 'Dinner' : 'Unknown',
                 Rating: item.rating,
                 Price: item.price,
                 Availability: item.availability_status === 1 ? 'Yes' : 'No'
@@ -98,8 +98,17 @@ class ChefService {
         });
     }
 
-    private async viewVotedItem() {
-        // Implementation for viewing voted items
+    private viewNotifications() {
+        this.socket.emit('seeNotifications'); 
+        this.socket.on('showNotification', (Notification: any) => {
+            console.table(Notification.showNotifications.map((item: any) => ({
+
+                'Message':item.message,
+                'Date':item.notification_date
+            })));
+          console.log('---------------------------------------');
+          this.viewMenu(); 
+        });   
     }
 
     private async viewDiscardMenuList() {
@@ -131,13 +140,14 @@ class ChefService {
         }
         
         this.socket.emit('getRecommendedFood', category );
+
         this.socket.on('getRecommendedFood', (Recommendation: any) => {
             
             console.table(Recommendation.showRecommendation.map((item: any) => ({
                 'Item Id': item.itemId,
                 'Item': item.foodItem,
                 'Rating': item.avgRating,
-                'Sentiment': item.avgSentimentRating,
+                'Sentiment score': item.avgSentimentRating,
                 'Average': item.combinedAvg
             })));
             console.log('---------------------------------------');
@@ -173,7 +183,7 @@ class ChefService {
                 category = 'Breakfast';
                 break;
         }
-        // return category;
+
         await this.socket.emit('viewVotes', { category });
     }
 
