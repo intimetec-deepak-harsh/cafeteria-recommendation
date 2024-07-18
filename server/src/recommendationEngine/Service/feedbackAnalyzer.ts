@@ -1,8 +1,8 @@
 import Sentiment = require('sentiment');
 import { FeedbackData } from '../Interface/feedbackData';
-import { FoodItemStats } from '../Interface/fooditemStats'
+// import { FoodItemStats } from '../Interface/fooditemStats'
 
-export class FeedbackAnalyzer {
+export default class FeedbackAnalyzer {
     private feedbackData: FeedbackData[];
     private sentimentAnalyzer: Sentiment;
 
@@ -12,10 +12,10 @@ export class FeedbackAnalyzer {
     }
 
     private analyzeComment(comment: string): number {
-        console.log('comment list',comment);
+        // console.log('comment list',comment);
         
         const result = this.sentimentAnalyzer.analyze(comment);
-        console.log('sentiment result',result);
+        // console.log('sentiment result',result);
         
         return result.score;
     }
@@ -33,8 +33,7 @@ export class FeedbackAnalyzer {
                 foodItemStats[foodItem] = { itemId: 0, totalRating: 0, totalSentimentRating: 0, count: 0 };
             }
             foodItemStats[foodItem].itemId = feedback.item_Id;
-            foodItemStats[foodItem].totalRating = +foodItemStats[foodItem].totalRating + +rating;
-            console.log('total Rzte',foodItemStats[foodItem].totalRating );
+            foodItemStats[foodItem].totalRating += +rating;
             
             const sentimentScore = this.analyzeComment(comment);
             foodItemStats[foodItem].totalSentimentRating += sentimentScore;
@@ -42,23 +41,10 @@ export class FeedbackAnalyzer {
         });
 
         return Object.keys(foodItemStats).map(foodItem => {
-            const itemId = foodItemStats[foodItem].itemId;
-            const { totalRating, totalSentimentRating, count } = foodItemStats[foodItem];
-            console.log('show count',count);
-            
+            const { itemId, totalRating, totalSentimentRating, count } = foodItemStats[foodItem];            
             const avgRating = totalRating / count;
-            console.log('total', totalRating);
-            console.log('Average Rating calculation', avgRating);
-            
             const avgSentimentRating = totalSentimentRating / count;
-            console.log('total sentiment', totalSentimentRating);
-            console.log('Average sentiment rating', avgSentimentRating);
-
-            const combinedAvg = (avgRating + avgSentimentRating) / 2;
-            console.log('Average sentiment rating', avgSentimentRating);
-            console.log('Average rating', avgRating);
-            console.log('Combine Avg', combinedAvg);
-
+            let combinedAvg = (avgRating + avgSentimentRating) / 2;
 
             return {
                 foodItem,
@@ -69,4 +55,13 @@ export class FeedbackAnalyzer {
             };
         });
     }
+}
+
+
+interface FoodItemStats {
+    foodItem: string;
+    itemId: number;
+    avgRating: number;
+    avgSentimentRating: number;
+    combinedAvg: number;
 }

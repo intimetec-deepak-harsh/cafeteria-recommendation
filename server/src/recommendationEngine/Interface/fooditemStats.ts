@@ -1,5 +1,5 @@
 export interface FoodItemStats {
-    foodItem: string;
+    foodItem?: string;
     itemId: number;
     avgRating: number;
     avgSentimentRating: number;

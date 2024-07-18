@@ -47,16 +47,24 @@ export class FeedbackService {
         }
     }
 
-    public async viewEmployeeVotes(item:any){
-        console.log('show para item',item);
-        
+    public async viewEmployeeVotes(item:any): Promise<RowDataPacket[] | { message: string }> {
+        console.log('show para item',item);        
         const connection = db;
         if(connection){
-            const checkQuery = `SELECT * FROM recommendation
-            WHERE category = ? AND DATE(recommendation_date) = CURDATE()`;
-            const [rows] = await connection!.execute(checkQuery, [item]);
-            console.log(rows);
-            return rows;
+            const checkQuery = `SELECT * FROM votedfooditem WHERE category = ? AND DATE = CURDATE()`;
+            const [rows] = await connection.execute<RowDataPacket[]>(checkQuery, [item]);
+           
+            if (rows.length === 0) {
+                console.log('No data available for today');
+                return { message: 'No data available for today' };
+            } else {
+                console.log(rows);
+                return rows;
+            }  
+            
+
+        }else {
+            throw new Error('No database connection.');
         }
     }
 }

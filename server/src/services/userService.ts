@@ -5,6 +5,8 @@ import { Role } from '../interface/role';
 import { MenuItem } from '../interface/menuItem';
 import { MealType } from '../interface/menuItem';
 import { ResultSetHeader } from 'mysql2';
+import { DiscardMenuitem } from '../interface/discardItems';
+import { RolloutItem } from '../interface/rolloutItem';
 
 class UserService {
     public async authenticateUser(email: string, password: string): Promise<User[]> {
@@ -20,6 +22,21 @@ class UserService {
         }
         return rows;
     }
+
+   // getRolloutData
+    public async getRolloutData(menu_type: string): Promise<RolloutItem[]> {
+        console.log('Menu type', menu_type);
+
+        if (!menu_type) {
+            throw new Error('Menu Type must be provided');
+        }
+        const [rows] = await db.execute<RolloutItem[]>(
+            'SELECT * FROM recommendation WHERE category = ? AND (recommendation_date = CURDATE() OR recommendation_date = CURDATE() - INTERVAL 1 DAY);',
+            [menu_type]
+        );
+        return rows;
+    }
+
 
     public async getUserRole(userId: number): Promise<Role[]> {
         if (!userId) {
@@ -39,6 +56,13 @@ class UserService {
         return rows;
     }
 
+    public async getDiscardMenu(): Promise<DiscardMenuitem[]> {
+        const [rows] = await db.execute<DiscardMenuitem[]>(
+        'SELECT  f.feedbackID, f.userId, f.item_Id, m.item_name, f.Comment, f.Rating, f.FeedbackDate  FROM feedback f JOIN  menuitem m ON f.item_Id = m.item_Id WHERE  f.Rating < 3',        
+        );
+        return rows;
+    }
+
     public async getMenu(): Promise<MenuItem[]> {
         const [rows] = await db.execute<MenuItem[]>(
             'SELECT * FROM MenuItem',          
@@ -53,16 +77,36 @@ class UserService {
         return rows;
     }
 
-    public async addNewMenuItem(item_name: string, meal_type: string, rating: string,price: number,availability_status:boolean): Promise<number> {
-        if (!item_name || !meal_type || !rating || !price || !availability_status) {
+    public async addNewMenuItem(item_name: string, meal_type: string, price: number,availability_status:boolean): Promise<number> {
+        if (!item_name || !meal_type || !price || !availability_status) {
             throw new Error('Item name, Meal Type, and rating must be provided');
         }
         const [result] =  await db.execute<ResultSetHeader>(
-            'INSERT INTO menuitem (item_name, meal_type, rating, price, availability_status) VALUES (?, ?, ?, ?, ?)',
-            [item_name, meal_type, rating, price, availability_status]
+            'INSERT INTO menuitem (item_name, meal_type, price, availability_status) VALUES (?, ?, ?, ?)',
+            [item_name, meal_type, price, availability_status]
         );
         return result.insertId;
+    }
 
+    // giveRolloutVote
+    public async giveRolloutVote(userID: number,menuId: number): Promise<void> {
+        const user_Id = userID;
+        const menu_Id = menuId;
+        const currentDate = new Date(); 
+       
+        if (!user_Id || !menu_Id) {
+            throw new Error(' Please Provide proper data');
+        }
+        try {
+            const [result] = await db.execute(
+            'INSERT INTO votedfooditem (item_Id,userId,Date,is_voted) VALUES (?, ?, ?, ?)',
+            [menu_Id, user_Id,currentDate,1]
+        );
+        console.log('User Rollout Voted successfully.');
+        }catch (error) {
+            console.error('Failed to vote for  menu item:', error);
+            throw new Error('Error while voting menu item');
+        }
     }
 
     public async updateExisitingMenuItem(data:any): Promise<void> {

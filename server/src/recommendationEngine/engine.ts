@@ -1,6 +1,6 @@
 import { FeedbackData } from '../recommendationEngine/Interface/feedbackData';
 import { FoodItemStats } from '../recommendationEngine/Interface/fooditemStats';
-import { FeedbackAnalyzer } from '../recommendationEngine/Service/feedbackAnalyzer';
+import  FeedbackAnalyzer  from '../recommendationEngine/Service/feedbackAnalyzer';
 import { FeedbackHandler } from '../recommendationEngine/Service/feedbackHandler';
 
 export class Engine {

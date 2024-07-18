@@ -2,6 +2,7 @@ import {db} from '../database/connection';
 import { Engine } from '../recommendationEngine/engine';
 import { FeedbackData } from '../recommendationEngine/Interface/feedbackData';
 import { FeedbackService } from './feedbackService';
+import NotificationService from './notificationService';
 
 class RecommendationService {
     private feedbackService: FeedbackService;
@@ -11,7 +12,10 @@ class RecommendationService {
     }
 
     public async getRecommendedFood(category: string) {
+
+        console.log('get category details',category);
         const feedbackData = await this.feedbackService.getFeedbackByCategory(category);
+        
         const feedback = feedbackData.map(row => ({ 
             
             item_Id: row.item_Id,
@@ -30,13 +34,17 @@ class RecommendationService {
                    
             console.log('Received itemId:', itemId.selectedItemId); 
             const idsArray = itemId.selectedItemId.split(',').map((id: string) => id.trim());
+
             if (idsArray.length === 0) {
                 throw new Error('No item IDs provided.');
             }
             const rawQuery = `SELECT * FROM menuitem WHERE item_Id IN (${idsArray.map((id: any) => `'${id}'`).join(',')})`;
             const [data] = await connection.query(rawQuery);
+
+            //calculate feedback data and calculate average
+            
             this.processRecommendedItems(data);
-            console.log(data)
+            console.log('show recommend',data)
             return data;
         } else {
             throw new Error('No database connection.');
@@ -57,14 +65,13 @@ class RecommendationService {
 
     public async processRecommendedItems(recommendedItems:any) {
         console.log('check para recommend',recommendedItems);
-        console.log('check para recommend2',recommendedItems[0]);
-        console.log('check para recommend3',recommendedItems[0].category);
+
         try {
             const dataExists = await this.checkIfDataExists(recommendedItems[0].item_Id);
             if (dataExists) {
                 console.log(`Data for category "${recommendedItems[0].item_Id}" and today is already present.`);
             } else {
-                await this.insertRecommendedItems(recommendedItems);
+                await this.insertRecommendedItems(recommendedItems);;
             }
       
             console.log('Operation completed.');
@@ -72,36 +79,6 @@ class RecommendationService {
             console.error('Error processing recommended items:', error);
         }
     }
-    
-    // public async insertRecommendedItems(recommendedItems:any) {
-    //     console.log('recommendation data',recommendedItems);
-        
-    //     const connection = db;
-    //     try {
-    //         const insertQuery = `
-    //         INSERT INTO recommendation(menuitem_id, category, averageRating, recommendation_date, vote)
-    //         VALUES (?, ?, ?, NOW(), 0)
-    //         `;
-
-    //         console.log('log recommend',recommendedItems);
-            
-    //         for (const item of recommendedItems) {
-    //             console.log('log item',item);
-                
-    //             await connection!.execute(insertQuery, [
-    //                 item.Item_Id,
-    //                 item.item_name,
-    //                 item.category,
-    //                 parseFloat(item.rating),
-    //             ]);
-    //             console.log(`Inserted item: ${item.ItemName}`);
-    //         }
-      
-    //         console.log('All recommended items inserted successfully.');
-    //     } catch (error) {
-    //         console.error('Error inserting recommended items:', error);
-    //     }
-    // }
 
     public async insertRecommendedItems(recommendedItems: any[]) {
         console.log('Recommendation data:', recommendedItems);
@@ -109,20 +86,14 @@ class RecommendationService {
         const connection = db;
         try {
             const insertQuery = `
-                INSERT INTO recommendation(menuitem_id, category, averageRating,menuName, recommendation_date,averageSentimentScore)
-                VALUES (?, ?, ?, ?,NOW(),0)
+                INSERT INTO recommendation(menuitem_id, category,menuName, recommendation_date)
+                VALUES (?, ?, ?,NOW())
             `;
     
             for (const item of recommendedItems) {
                 console.log('Item details:', item);
     
-                const { item_Id, item_name, rating, meal_type } = item;
-    
-                // Ensure all required properties are present
-                // if (item_Id === undefined || item_name === undefined || rating === undefined || meal_type === undefined) {
-                //     console.error(`Skipping item due to missing values: ${JSON.stringify(item)}`);
-                //     continue;
-                // }
+                const { item_Id, item_name, meal_type } = item;
     
                 // Determine category based on meal_type
                 let category: string;
@@ -140,24 +111,23 @@ class RecommendationService {
                         console.error(`Invalid meal_type for item: ${JSON.stringify(item)}`);
                         continue;
                 }
-    
-                const averageRating = parseFloat(rating);
-                console.log('Parsed rating:', averageRating);
-    
-                // Check if the rating is a valid number
-                if (isNaN(averageRating)) {
-                    console.error(`Skipping item due to invalid rating: ${JSON.stringify(item)}`);
-                    continue;
-                }
-    
+
                 await connection.execute(insertQuery, [
                     item_Id,
                     category,
-                    averageRating,
                     item_name
                 ]);
     
                 console.log(`Inserted item: ${item_name}`);
+
+                const menuId = item_Id;   
+                console.log('recommended foodlist',menuId);
+                
+               const type = 'recommendation';
+               const message = `Rollout food for '${category}' has been added for the vote.`;
+
+               await NotificationService.addNotification(type, message, menuId);
+              console.log('Notification added successfully for the recommendationss.')
             }
     
             console.log('All recommended items inserted successfully.');

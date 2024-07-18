@@ -16,6 +16,7 @@ class AdminService {
         console.log('4. Delete Menu Items');
         console.log('5. Update Menu Availability');
         console.log('6. View Logs');
+        console.log('7. View Discard Menu');
         console.log('8. Exit');
 
         this.rl.question('Select Option: ', (option) => {
@@ -42,7 +43,10 @@ class AdminService {
                 break;
             case '6':
                 this.viewLogs();
-                break;    
+                break;  
+            case '7':
+                this.viewDiscardMenuList();
+                break;  
             case '8':
                 console.log('Exiting...');
                 this.rl.close();
@@ -63,7 +67,6 @@ class AdminService {
                 Id: item.item_Id,
                 Name: item.item_name,
                 'Meal Type': item.meal_type === 1 ? 'Breakfast' : item.meal_type === 2 ? 'Lunch' : item.meal_type === 3 ? 'Dinner' : 'Unknown',
-                Rating: item.rating,
                 Price: item.price,
                 Availability: item.availability_status === 1 ? 'Yes' : 'No'
             }));
@@ -86,16 +89,27 @@ class AdminService {
             this.viewMenu();
         });
     }
-    
+
+    private async viewDiscardMenuList() {
+        this.socket.emit('viewDiscardMenuItem');
+        this.socket.on('viewDiscardMenuItem', (Logs: any) => {
+            console.table(Logs.showMenuItem.map((item:any) => ({
+                'Item Name': item.item_name,
+                'Rating': item.Rating,
+                'Comment': item.Comment,
+            })));
+            console.log('---------------------------------------');
+            this.viewMenu();
+        });
+    }
+
 
    private async addMenuItem() {
         const item_name = await this.promptUtils.askQuestion('Enter Item Name:');
-        const meal_type = await this.promptUtils.askQuestion('Enter Meal Type (1. for Breakfast/ 2. for lunch/ 3. for dinner):');
+        const meal_type = await this.promptUtils.askQuestion('Enter Meal Type (1. for Breakfast 2. for lunch 3. for dinner):');
         const price = await this.promptUtils.askQuestion('Enter Price:');
         const availability_status = await this.promptUtils.askQuestion('Enter Availability (1 for Yes/0 for No):');
-        const rating = await this.promptUtils.askQuestion('Enter rating:');
-
-        this.socket.emit('addNewMenuItem', { item_name, meal_type, rating, price, availability_status });
+        this.socket.emit('addNewMenuItem', { item_name, meal_type, price, availability_status });
         this.viewMenu();
     }
 

@@ -117,10 +117,10 @@ class SocketHandler {
         });
 
         socket.on('addNewMenuItem', async (data) => {
-            const { item_name, meal_type,rating,price,availability_status} = data;
+            const { item_name, meal_type,price,availability_status} = data;
             console.log('check data',data);            
             try {
-           const menuId  =  await this.userService.addNewMenuItem(item_name, meal_type, rating, price, availability_status);
+           const menuId  =  await this.userService.addNewMenuItem(item_name, meal_type, price, availability_status);
             socket.emit('menuItemAdded', 'New menu item added successfully');
 
               const type = 'menuUpdate';
@@ -137,7 +137,7 @@ class SocketHandler {
 
         socket.on('getRecommendedFood', async (category) => {              
         const showRecommendation = await this.RecommendationService.getRecommendedFood(category);     
-        console.log(showRecommendation);
+        console.log(showRecommendation);         
 
         if (showRecommendation && showRecommendation.length > 0) {
             const showRecommendationData = {showRecommendation}; 
@@ -158,11 +158,14 @@ class SocketHandler {
             }
         });
         
-        socket.on('viewVotes', async (itemCategory) =>{
-          
+        socket.on('viewVotes', async (itemCategory) =>{          
             try{
                const votedItems = await this.feedbackService.viewEmployeeVotes(itemCategory.category);
-                socket.emit('votedMenuItems','View all Votes successfully');
+               if ('message' in votedItems) {
+               socket.emit('userVotedMenu', { message: votedItems.message });
+               }else{
+               socket.emit('userVotedMenu',votedItems);
+               }
             } catch(error) {
                 console.error('Database query error:', error);
             }
@@ -216,6 +219,17 @@ class SocketHandler {
             }
            });
 
+           socket.on('viewDiscardMenuItem', async () => {
+            const showMenuItem = await this.userService.getDiscardMenu();
+            console.log(showMenuItem);
+
+            if (showMenuItem && showMenuItem.length > 0) {
+                const Logs = {showMenuItem}; 
+               
+                socket.emit('viewDiscardMenuItem', Logs);
+            }
+           })
+
            socket.on('seeNotifications', async () => {     
             const showNotifications = await this.NotificationService.seeNotifications();
             console.log(showNotifications);
@@ -226,8 +240,21 @@ class SocketHandler {
                 socket.emit('showNotification', Notifications);
             }
            });  
- 
 
+           socket.on('showEmployeeNotifications', async () => {     
+            try {
+                const showNotificationsEmployee = await this.NotificationService.seeEmployeeNotifications();
+                console.log(showNotificationsEmployee);
+        
+                if (showNotificationsEmployee && showNotificationsEmployee.length > 0) {
+                    const EmployeeNotifications = { showNotificationsEmployee }; 
+    
+                    socket.emit('getEmployeeNotification', EmployeeNotifications);
+                }
+            } catch (error) {
+                console.error('Error fetching employee notifications:', error);
+            }
+        });
 
         socket.on('giveFeedback', async (data) => {
             const {user_Id, item_Id, Comment, Rating,feedbackDate} = data;
@@ -243,7 +270,36 @@ class SocketHandler {
             }
         });
 
+
+
+        socket.on('getRolloutitem', async (data) => {
+            const meal_type = data.meal_type; // Extract the meal_type from the received data
+            
+            try {
+                const getRolloutdata = await this.userService.getRolloutData(meal_type);
+                socket.emit('getRolloutData', getRolloutdata);
+            } catch (error) {
+                console.error('Error getting Rollout item:', error);
+                socket.emit('error', 'Error occurred');
+            }
+        });
         
+        socket.on('insertVotedItem', async (data) => {
+            console.log('voted',data);            
+            const userID = data.userId;
+            const menuId = data.selectItem;   
+                        
+            try {
+                const insertVote = await this.userService.giveRolloutVote(userID,menuId);
+                socket.emit('votegiven', insertVote);
+            } catch (error) {
+                console.error('Error giving vote for item:', error);
+                socket.emit('error', 'Error occurred');
+            }
+        });
+
+
+
 
         socket.on('UpdateProfile', async (data) => {
            

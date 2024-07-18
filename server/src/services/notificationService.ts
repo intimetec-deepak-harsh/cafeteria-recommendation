@@ -38,17 +38,22 @@ public  static async addNotificationOLD(notification: Notification): Promise<any
   }
 
     public async seeNotifications(): Promise<Notification[]> {
-    // const expiryDays = defaultItemValues.notification_expiry;
-    // const expiryDate = DateService.getNthPreviousDate(expiryDays);
-    // const formatedExpiryDate = expiryDate.split(" ")[0];
-   
     const [rows] = await db.execute<Notification[]>(
-        'SELECT * FROM notification WHERE notification_date ORDER BY notification_date DESC',
+       'SELECT * FROM notification WHERE notification_date ORDER BY notification_date DESC;',
         // [formatedExpiryDate]
       );
       return rows;
 
   }
+
+  public async seeEmployeeNotifications(): Promise<Notification[]> {
+    const [rows] = await db.execute<Notification[]>(
+     'SELECT * FROM notification WHERE DATE(notification_date) = CURDATE() ORDER BY notification_date DESC',
+      );
+      return rows;
+
+  }
+
 }
 
 export default NotificationService;
