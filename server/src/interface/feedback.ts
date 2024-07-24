@@ -6,5 +6,6 @@ export  interface FeedbackData extends RowDataPacket {
     comment: string; 
     userId?: number;
     item_Id?: number;
+    meal_type_name?: string;
     feedbackDate?: Date;
 }

@@ -130,10 +130,6 @@ class EmployeeService {
                 console.log('user selected: ',selectItem);
 
                 const userId = this.userId;
-                // console.table('Thank you for your vote.');
-                // console.log('-----------------------------------------');
-                // this.viewMenu(this.userId!);
-
                  this.socket.emit('insertVotedItem', { selectItem ,userId});   
                  
                  console.table('Thank you for your vote.');

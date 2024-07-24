@@ -80,8 +80,7 @@ class SocketHandler {
             console.log(showMenu);
 
             if (showMenu && showMenu.length > 0) {
-                const menuName = {showMenu}; 
-               
+                const menuName = {showMenu};                
                 socket.emit('MenuDetails', menuName);
             }else {
 
@@ -92,13 +91,13 @@ class SocketHandler {
         socket.on('viewMealType', async () => {     
             const showMenu = await this.userService.getMealType();
             console.log(showMenu);
-
+        
             if (showMenu && showMenu.length > 0) {
-                const menuName = {showMenu}; 
-               
-                socket.emit('MenuDetails', menuName);
-            }else {
-
+                const menuName = { showMenu };
+                socket.emit('getMealData', menuName);
+            } else {
+                // Handle the case where there is no data
+                console.log('No meal types found.');
             }
         });
 
@@ -135,7 +134,7 @@ class SocketHandler {
             }
         });
 
-        socket.on('getRecommendedFood', async (category) => {              
+        socket.on('getRecommendedFood', async (category) => {                        
         const showRecommendation = await this.RecommendationService.getRecommendedFood(category);     
         console.log(showRecommendation);         
 
@@ -150,13 +149,15 @@ class SocketHandler {
         socket.on('rolloutRecommendedFood', async (category) => {
             try {
                 const recommendedItems = await this.RecommendationService.analyzeRolloutInput(category);
-                console.log('Recommended items',recommendedItems);
                 socket.emit('recommendedItemsByChef', recommendedItems);
             } catch (error) {
                 console.error('Database query error:', error);
                 socket.emit('recommendedItemsByChef', 'Error in fetching feedback.');
             }
         });
+        
+        
+        
         
         socket.on('viewVotes', async (itemCategory) =>{          
             try{

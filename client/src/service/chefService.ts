@@ -12,8 +12,8 @@ class ChefService {
 
     public viewMenu() {
         console.log('1. View Menu Items');
-        console.log('2. View Meal Types');
-        console.log('3. View Notifications');
+        // console.log('2. View Meal Types');
+        // console.log('3. View Notifications');
         console.log('4. View Recommended Food');
         console.log('5. Rollout Menu Item');
         console.log('6. View All Available Food Items');
@@ -33,12 +33,12 @@ class ChefService {
             case '1':
                 this.viewAllMenuItems();
                 break;
-            case '2':
-                this.viewMealTypes();
-                break;
-            case '3':
-                this.viewNotifications();
-                break;
+            // case '2':
+            //     this.viewMealTypes();
+            //     break;
+            // case '3':
+            //     this.viewNotifications();
+            //     break;
             case '4':
                 this.viewFoodRecommendationForMeal();
                 break;
@@ -85,16 +85,16 @@ class ChefService {
         });
     }
 
-    private viewMealTypes() {
-        this.socket.emit('viewMealType');
-        this.socket.on('MenuDetails', (data: any) => {
-            const tableData = data.showMenu.map((item: any) => ({
-                'Meal Type': item.meal_type_name,
-            }));
-            console.table(tableData);
-            this.viewMenu();
-        });
-    }
+    // private viewMealTypes() {
+    //     this.socket.emit('viewMealType');
+    //     this.socket.on('getMealData', (data: any) => {
+    //         const tableData = data.showMenu.map((item: any) => ({
+    //             'Meal Type': item.meal_type_name,
+    //         }));
+    //         console.table(tableData);
+    //         this.viewMenu();
+    //     });
+    // }
 
     private viewNotifications() {
         this.socket.emit('seeNotifications'); 
