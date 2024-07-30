@@ -12,7 +12,7 @@ class ChefService {
 
     public viewMenu() {
         console.log('1. View Menu Items');
-        // console.log('2. View Meal Types');
+        console.log('2. Generate Monthly Report');
         // console.log('3. View Notifications');
         console.log('4. View Recommended Food');
         console.log('5. Rollout Menu Item');
@@ -33,10 +33,10 @@ class ChefService {
             case '1':
                 this.viewAllMenuItems();
                 break;
-            // case '2':
-            //     this.viewMealTypes();
-            //     break;
-            // case '3':
+            case '2':
+                this.generateMonthlyReport();
+                break;
+            case '3':
             //     this.viewNotifications();
             //     break;
             case '4':
@@ -85,16 +85,32 @@ class ChefService {
         });
     }
 
-    // private viewMealTypes() {
-    //     this.socket.emit('viewMealType');
-    //     this.socket.on('getMealData', (data: any) => {
-    //         const tableData = data.showMenu.map((item: any) => ({
-    //             'Meal Type': item.meal_type_name,
-    //         }));
-    //         console.table(tableData);
-    //         this.viewMenu();
-    //     });
-    // }
+
+//       // generate Report
+private async generateMonthlyReport() {
+    const startDate = await this.promptUtils.askQuestion('Enter Start Date in (YYYY-MM-DD) Format: ');
+    const endDate = await this.promptUtils.askQuestion('Enter End Date in (YYYY-MM-DD) Format: ');
+    console.log('startDate', startDate);
+    console.log('endDate', endDate);
+    
+    this.socket.emit('generateMonthlyReport', { startDate, endDate });
+
+    this.socket.on('generateFeedbackReport', (data: any) => {
+        if (data === 'Error in Generating feedback Monthly Report.') {
+            console.log(data);
+        } else {
+            const tableData = data.map((item: any) => ({
+                'Menu ID': item.menu_id,
+                'Recom. ID': item.recommendation_id,
+                'Avg Rating': item.average_rating,
+                'Total Feedbacks': item.total_feedbacks,
+                'Comments': item.comments
+            }));
+            console.table(tableData);
+        }
+        this.viewMenu();
+    });
+}
 
     private viewNotifications() {
         this.socket.emit('seeNotifications'); 
@@ -133,6 +149,7 @@ class ChefService {
         }
         
         this.socket.emit('getRecommendedFood', category );
+        this.socket.emit('getAllItemRecommended');
 
         this.socket.on('getRecommendedFood', (Recommendation: any) => {
             
@@ -190,17 +207,18 @@ class ChefService {
                 category = 'Breakfast';
                 break;
         }
-
+            
          this.socket.emit('viewVotes', { category });
          this.socket.on('userVotedMenu', (voteItems: any) => {
+           
             if (voteItems.message) {
                 console.log(voteItems.message);
             }else if(voteItems && Array.isArray(voteItems)) {
                 console.table(voteItems.map((item: any) => ({
-                    'Menu Item ID': item.menuItem_id,
-                    'Recommendation Date': item.recommendation_date,
+                    'Menu Item ID': item.item_Id,
+                    'Menu Name': item.item_name,
                     'Category': item.category,
-                    'Menu Name': item.menuName
+                    'Total Vote': item.vote_count
                 })));
             } else {
                 console.log('No voted items found.');
@@ -226,6 +244,58 @@ class ChefService {
 
     private async viewDiscardMenuList() {
         // Implementation for viewing discard menu list
+        this.socket.emit('viewDiscardMenuItem');
+
+        this.socket.on('viewDiscardMenuItem', async (Logs: any) => {
+          
+           console.table(Logs.showMenuItem.map((item:any) => ({
+               'Item Id': item.itemId,
+               'Item Name': item.foodItem,
+               'Rating': item.avgRating,
+               'Sentiment Score': item.avgSentimentRating,
+           })));
+           console.log('---------------------------------------');
+           
+           // this.viewMenu();
+           console.log('Do you want to remove the item from Menu?')
+           const removeItem =  await this.promptUtils.askQuestion('1 for YES | 2 for NO: ');
+           if (removeItem === '1') {
+               const item_Id = await this.promptUtils.askQuestion('Enter Item ID you want to remove:');
+               this.socket.emit('DiscardMenuItem', { item_Id });
+               this.viewMenu();
+           }else{
+               console.log('---------------------------------------');
+               console.log('Get Detailed Feedback:');
+               const item_Id = await this.promptUtils.askQuestion('Enter Item ID to get more Detailed Feedback:');
+               const menuItem = Logs.showMenuItem.find((item: any) => item.itemId === parseInt(item_Id));
+
+            if (menuItem) {
+                const itemId = menuItem.item_Id;
+                const itemName = menuItem.foodItem;
+
+                const questions = [
+                    `Q1. What did you not like about ${itemName}?`,
+                    `Q2. How would you like ${itemName} to taste?`,
+                    `Q3. Share your mom's recipe for ${itemName}?`,
+                  ];
+                    console.log(itemName);
+                    console.log(itemId);
+                    this.socket.emit('addDetailedFeedbackQuestions', { itemId,itemName, questions });    
+                console.log('Thank you for your feedback!');
+            } else {
+                console.log('Invalid Item ID entered.');
+            }
+               this.viewMenu();
+           }
+           
+       });
+
+       this.socket.on('noData', (message: string) => {
+           console.log('Output:',message);
+           console.log('---------------------------------------');
+
+           this.viewMenu();
+       });
     }
 }
 

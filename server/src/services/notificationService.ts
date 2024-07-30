@@ -48,11 +48,11 @@ public  static async addNotificationOLD(notification: Notification): Promise<any
 
   public async seeEmployeeNotifications(): Promise<Notification[]> {
     const [rows] = await db.execute<Notification[]>(
-     'SELECT * FROM notification WHERE DATE(notification_date) = CURDATE() ORDER BY notification_date DESC',
-      );
-      return rows;
+        'SELECT * FROM notification WHERE DATE(notification_date) = CURDATE() ORDER BY notification_date DESC'
+    );
+    return rows.length > 0 ? rows : [];
+}
 
-  }
 
 }
 

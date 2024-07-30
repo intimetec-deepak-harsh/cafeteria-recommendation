@@ -20,14 +20,17 @@ export default class FeedbackAnalyzer {
         return (rating - 3) * 2 / 2; // Normalize the rating to a sentiment score
     }
 
+
     public calculateAverages(): FoodItemStats[] {
-        const foodItemStats: { [key: string]: { itemId: number,meal_type:number, meal_type_name?: string, totalRating: number, totalSentimentRating: number, count: number } } = {};
+
+        const foodItemStats: { [key: string]: { itemId: number,meal_type:number, meal_type_name?: string, totalRating: number, totalSentimentRating: number, count: number } } = {};     
+       
         this.feedbackData.forEach(feedback => {
             const { foodItem, rating, comment,meal_type_name,meal_type } = feedback;
             if (!foodItemStats[foodItem]) {
                 foodItemStats[foodItem] = { itemId: 0, meal_type:0,meal_type_name: '', totalRating: 0, totalSentimentRating: 0, count: 0 };
             }
-            foodItemStats[foodItem].itemId = feedback.item_Id;
+            foodItemStats[foodItem].itemId = feedback.item_Id;           
             foodItemStats[foodItem].meal_type_name = feedback.meal_type_name;
             foodItemStats[foodItem].meal_type = feedback.meal_type; 
             foodItemStats[foodItem].totalRating += +rating;
@@ -39,6 +42,7 @@ export default class FeedbackAnalyzer {
 
         return Object.keys(foodItemStats).map(foodItem => {
             const { itemId, meal_type_name, meal_type, totalRating, totalSentimentRating, count } = foodItemStats[foodItem];
+            
             const avgRating = totalRating / count;
             const avgSentimentRating = totalSentimentRating / count;
             let combinedAvg = (avgRating + avgSentimentRating) / 2;

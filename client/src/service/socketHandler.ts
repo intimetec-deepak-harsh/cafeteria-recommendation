@@ -19,7 +19,6 @@ class SocketHandler {
     ) {}
 
     public setupSocketListeners = () => {
-        // Event listener when socket connects to server
         this.socket.on('connect', () => {
             console.log('Connected to server with ID:', this.socket.id);
             console.log('Successfully connected with server');
@@ -35,7 +34,7 @@ class SocketHandler {
             console.log('UserID:', message);
             this.userId = message;
             if (this.userId !== undefined) {
-                this.setUserId(this.userId);  // Set the userId in the main app
+                this.setUserId(this.userId);
             } else {
                 console.error('Received undefined userId');
             }
@@ -48,13 +47,13 @@ class SocketHandler {
         this.socket.on('role', (message) => {
             console.log(`Welcome, ${this.username} to Cafeteria Recommendation. Your Role is: ${message}`);
             console.log('--------------------------------------------');
-            this.userRole = message;  // Ensure userRole is set
+            this.userRole = message;
             this.handleRoleBasedNavigation(message);
         });
 
         this.socket.on('authentication_failed', (message) => {
             console.error('Authentication failed:', message);
-            this.authService.authenticateUser(); // Prompt the user to try again
+            this.authService.authenticateUser();
         });
 
         this.socket.on('recommendedItemsByChef', (recommendedItems: any[]) => {
@@ -71,11 +70,11 @@ class SocketHandler {
             console.log('_____________________________________________________________________');
             this.handleRoleBasedNavigation(this.userRole!);
         });
-        
-        
 
         this.socket.on('error', (message) => {
             console.error('Error:', message);
+            console.log('---------------------------------------');
+            this.authService.authenticateUser();
             this.rl.close();
         });
 
@@ -111,8 +110,9 @@ class SocketHandler {
 
         this.socket.on('disconnect', () => {
             console.log('Disconnected from server');
-            this.rl.close();
-            
+            if (!this.authService.rlClosed) { // Check if readline is not closed
+                this.rl.close(); // Close readline interface
+            }
         });
     };
 }

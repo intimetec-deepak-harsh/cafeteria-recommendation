@@ -92,24 +92,43 @@ class AdminService {
 
     private async viewDiscardMenuList() {
         this.socket.emit('viewDiscardMenuItem');
-        this.socket.on('viewDiscardMenuItem', (Logs: any) => {
+
+         this.socket.on('viewDiscardMenuItem', async (Logs: any) => {
+           
             console.table(Logs.showMenuItem.map((item:any) => ({
-                'Item Name': item.item_name,
-                'Rating': item.Rating,
-                'Comment': item.Comment,
+                'Item Id': item.itemId,
+                'Item Name': item.foodItem,
+                'Rating': item.avgRating,
+                'Sentiment Score': item.avgSentimentRating,
             })));
             console.log('---------------------------------------');
+            this.viewMenu();        
+            
+        });
+
+        this.socket.on('noData', (message: string) => {
+            console.log('Output:',message);
+            console.log('---------------------------------------');
+
             this.viewMenu();
         });
     }
 
-
+    // dietary_type: "vegetarian" | "non-vegetarian" | "eggetarian";
+    // spice_type: "high" | "medium" | "low";
+    // cuisine_type: "north-indian" | "south-indian" | "other";
    private async addMenuItem() {
         const item_name = await this.promptUtils.askQuestion('Enter Item Name:');
         const meal_type = await this.promptUtils.askQuestion('Enter Meal Type (1. for Breakfast 2. for lunch 3. for dinner):');
         const price = await this.promptUtils.askQuestion('Enter Price:');
         const availability_status = await this.promptUtils.askQuestion('Enter Availability (1 for Yes/0 for No):');
-        this.socket.emit('addNewMenuItem', { item_name, meal_type, price, availability_status });
+
+        const dietary_type = await this.promptUtils.askQuestion('Enter Dietary Type (1. for vegetarian 2. for non-vegetarian 3. for eggetarian):');
+        const spice_type = await this.promptUtils.askQuestion('Enter Spicy Type (1. for high 2. for medium 3. for low):');
+        const cuisine_type = await this.promptUtils.askQuestion('Enter Cuisine Type (1. for north-indian 2. for south-indian  3.for other):');
+        const sweet_tooth_type = await this.promptUtils.askQuestion('Do you have Sweeth Tooth (1. for Yes 0. for NO):');
+
+        this.socket.emit('addNewMenuItem', { item_name, meal_type, price, availability_status, dietary_type, spice_type, cuisine_type,sweet_tooth_type });
         this.viewMenu();
     }
 
@@ -119,16 +138,26 @@ class AdminService {
             const meal_type = await this.promptUtils.askQuestion('Enter Meal Type (1. for Breakfast/ 2. for lunch/ 3. for dinner):');
             const price = await this.promptUtils.askQuestion('Enter Price:');
             const availability_status = await this.promptUtils.askQuestion('Enter Availability (1 for Yes/0 for No):');
-            const rating = await this.promptUtils.askQuestion('Enter rating:');
                  
-        this.socket.emit('updateExisitingMenuItem', { item_Id, item_name, meal_type, rating, price, availability_status });
+        this.socket.emit('updateExisitingMenuItem', { item_Id, item_name, meal_type, price, availability_status });
         this.viewMenu();
     }
 
    private async deleteMenuItem() {
     const item_Id = await this.promptUtils.askQuestion('Enter Item ID:');
+    console.log('Are you sure! you want to Delete item ?');
+    const response = await this.promptUtils.askQuestion('1 for Yes | 2 for No :');
+
+        console.log(response);
+        if (response == '1') {
             this.socket.emit('deleteExisitingMenuItem', { item_Id });
-            this.viewMenu();
+            this.viewMenu(); 
+        }else{
+            
+            this.viewMenu(); 
+        }
+        
+
     }
 
     private async updateItemAvailability() {

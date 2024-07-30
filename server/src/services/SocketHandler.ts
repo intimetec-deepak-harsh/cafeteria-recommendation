@@ -6,6 +6,8 @@ import NotificationService from '../services/notificationService';
 import RecommendationService from '../services/recommendationService'
 import  FeedbackService  from './feedbackService';
 import DateService from './DateService';
+import { Engine } from '../recommendationEngine/engine';
+import { FeedbackQuestionsData } from '../interface/FeedbackQuestionData';
 
 class SocketHandler {
     private userService: UserService;
@@ -13,7 +15,6 @@ class SocketHandler {
     private LogService: LogService ;
     private NotificationService: NotificationService;
     private RecommendationService: RecommendationService;
-    // private FeedbackService: FeedbackService;
     private feedbackService: FeedbackService = new FeedbackService;
 
     constructor() {
@@ -22,7 +23,7 @@ class SocketHandler {
         this.LogService = new LogService();
         this.NotificationService = new NotificationService();
         const feedbackService = new FeedbackService();
-         this.RecommendationService = new RecommendationService(feedbackService);
+        this.RecommendationService = new RecommendationService(feedbackService);
     }
 
     public setupSocketEvents(socket: Socket): void {
@@ -34,10 +35,9 @@ class SocketHandler {
 
             try {
                 const user = await this.userService.authenticateUser(email, password);
-                console.log('see user details',user);
+                console.log('Authenticated User:', user[0]);
                 
                 if (user && user.length > 0) {
-                    console.log('Authenticated User:', user[0]); 
                     const userName = user[0].name;                    
                     socket.emit('user', userName);
                     const userID = user[0].userId;       
@@ -46,7 +46,6 @@ class SocketHandler {
                     socket.emit('authenticated', 'Authentication successful');
                     socket.emit('authenticate', email);
                     const roleId = user[0].roleId;                    
-                    console.log('Role ID:', roleId); 
                     if (!roleId) {
                         throw new Error('User role ID is missing or undefined');
                     }
@@ -70,7 +69,7 @@ class SocketHandler {
                 }
             } catch (error) {
                 console.error('Error during authentication:', error);
-                socket.emit('error', 'Error occurred during authentication');
+                socket.emit('error', 'Wrong credentials, Please Try Again');
             }
         });
         
@@ -116,10 +115,10 @@ class SocketHandler {
         });
 
         socket.on('addNewMenuItem', async (data) => {
-            const { item_name, meal_type,price,availability_status} = data;
+            const { item_name, meal_type,price,availability_status, dietary_type, spice_type, cuisine_type,sweet_tooth_type} = data;
             console.log('check data',data);            
             try {
-           const menuId  =  await this.userService.addNewMenuItem(item_name, meal_type, price, availability_status);
+           const menuId  =  await this.userService.addNewMenuItem(item_name, meal_type, price, availability_status, dietary_type, spice_type, cuisine_type,sweet_tooth_type);
             socket.emit('menuItemAdded', 'New menu item added successfully');
 
               const type = 'menuUpdate';
@@ -136,15 +135,42 @@ class SocketHandler {
 
         socket.on('getRecommendedFood', async (category) => {                        
         const showRecommendation = await this.RecommendationService.getRecommendedFood(category);     
-        console.log(showRecommendation);         
+        console.log('show recoomendation',showRecommendation);         
 
         if (showRecommendation && showRecommendation.length > 0) {
             const showRecommendationData = {showRecommendation}; 
            
-            socket.emit('getRecommendedFood', showRecommendationData);
-             
+            socket.emit('getRecommendedFood', showRecommendationData);            
         }
         });
+
+        //get all recoommednagion 
+
+        socket.on('getAllItemRecommended', async () => {
+            try {                        
+                const showAllRecommendation = await this.RecommendationService.getAllItemRecommendedFood();     
+               // console.log('show all recommendation daTA', showAllRecommendation);         
+        
+                if (showAllRecommendation && showAllRecommendation.length > 0) {
+                    for (const recommendation of showAllRecommendation) {
+                        const { foodItem, itemId, meal_type_name, meal_type: meal_id, avgRating, avgSentimentRating, combinedAvg } = recommendation;
+        
+                        // Add the recommendation item to the menu_item_audit table
+                        await this.RecommendationService.addMenuItemAudit([{
+                            foodItem,itemId,meal_type_name,meal_id,avgRating,avgSentimentRating,combinedAvg,EntryDate: new Date() }]);
+                    }
+        
+                    const showAllRecommendationData = { showAllRecommendation }; 
+                    socket.emit('getAllItemRecommended', showAllRecommendationData);           
+                }
+            } catch (error) {
+                console.error('Error processing recommendations:', error);
+                socket.emit('error', 'Error occurred while processing recommendations'); 
+            }
+        });
+        
+
+
 
         socket.on('rolloutRecommendedFood', async (category) => {
             try {
@@ -156,12 +182,26 @@ class SocketHandler {
             }
         });
         
-        
-        
+
+        socket.on('generateMonthlyReport', async ({ startDate, endDate }) => {
+            try {
+                const generateReport = await this.feedbackService.getFeedbackMonthlyReport(startDate, endDate);
+                console.log(generateReport);
+                
+                socket.emit('generateFeedbackReport', generateReport);
+            } catch (error) {
+                console.error('Database query error:', error);
+                socket.emit('generateFeedbackReport', 'Error in Generating feedback Monthly Report.');
+            }
+        });
         
         socket.on('viewVotes', async (itemCategory) =>{          
             try{
+                console.log('item category',itemCategory);
+                
                const votedItems = await this.feedbackService.viewEmployeeVotes(itemCategory.category);
+               console.log('voted item',votedItems);
+
                if ('message' in votedItems) {
                socket.emit('userVotedMenu', { message: votedItems.message });
                }else{
@@ -186,8 +226,7 @@ class SocketHandler {
         });
 
         socket.on('deleteExisitingMenuItem', async (data) => {
-            console.log('check data',data);
-            
+            console.log('check data',data);            
             try {
            const addMenuItem =  await this.userService.deleteExisitingMenuItem(data);
                 socket.emit('menuItemDeleted', 'Menu item deleted successfully');
@@ -197,6 +236,44 @@ class SocketHandler {
                 socket.emit('error','Error occurred during deleting'); 
             }
         });
+
+        
+
+        socket.on('DiscardMenuItem', async (data) => {
+            console.log('check data',data);            
+            try {
+           const addMenuItem =  await this.userService.DiscardMenuItem(data);
+                socket.emit('menuItemDeleted', 'Menu item Discarded successfully');
+                
+            } catch (error) {
+                console.error('Error deleteing menu item:', error);
+                socket.emit('error','Error occurred during deleting'); 
+            }
+        });
+
+        //addDetailedFeedbackQuestions
+        socket.on('addDetailedFeedbackQuestions', async (data:FeedbackQuestionsData) => {
+            const { itemId,itemName, questions} = data;
+            console.log('check data',data);            
+            try {
+           const menuId  =  await this.feedbackService.addDetailFeedbackQuestions(itemId, questions);
+            socket.emit('feedbackQuestion', 'New Feedback Question Rollout successfully');
+
+              const type = 'recommendation';
+              const message = `New Feedback Quesiton for '${itemName}' has been added in the list.
+              Here are the Questions:
+              '${questions}'`;
+
+              await NotificationService.addNotification(type, message, itemId);
+             console.log(`Notification added successfully for the new menu item. `);
+                
+            } catch (error) {
+                console.error('Error adding new menu item:', error);
+                socket.emit('error','Error occurred during authentication'); 
+            }
+        });
+
+
 
         socket.on('viewFeedback', async () => {     
             const showFeedback = await this.userService.getFeedback();
@@ -220,14 +297,17 @@ class SocketHandler {
             }
            });
 
-           socket.on('viewDiscardMenuItem', async () => {
+           socket.on('viewDiscardMenuItem', async () => {         
+               
             const showMenuItem = await this.userService.getDiscardMenu();
-            console.log(showMenuItem);
+            console.log('show Data',showMenuItem);
 
             if (showMenuItem && showMenuItem.length > 0) {
-                const Logs = {showMenuItem}; 
-               
+                        
+                const Logs = {showMenuItem};                
                 socket.emit('viewDiscardMenuItem', Logs);
+            }else {
+                socket.emit('noData', 'No data available;');
             }
            })
 
@@ -249,13 +329,15 @@ class SocketHandler {
         
                 if (showNotificationsEmployee && showNotificationsEmployee.length > 0) {
                     const EmployeeNotifications = { showNotificationsEmployee }; 
-    
                     socket.emit('getEmployeeNotification', EmployeeNotifications);
+                } else {
+                    socket.emit('getEmployeeNotification', { message: 'No latest notifications.' });
                 }
             } catch (error) {
                 console.error('Error fetching employee notifications:', error);
             }
         });
+        
 
         socket.on('giveFeedback', async (data) => {
             const {user_Id, item_Id, Comment, Rating,feedbackDate} = data;
@@ -274,10 +356,13 @@ class SocketHandler {
 
 
         socket.on('getRolloutitem', async (data) => {
-            const meal_type = data.meal_type; // Extract the meal_type from the received data
-            
+            const meal_type = data.meal_type;  
+            console.log('meal type',meal_type);
+                       
             try {
                 const getRolloutdata = await this.userService.getRolloutData(meal_type);
+                console.log('get rollout data',getRolloutdata);
+                
                 socket.emit('getRolloutData', getRolloutdata);
             } catch (error) {
                 console.error('Error getting Rollout item:', error);
@@ -289,18 +374,18 @@ class SocketHandler {
             console.log('voted',data);            
             const userID = data.userId;
             const menuId = data.selectItem;   
-                        
+            const Category = data.selectedMealType;
+            
+            console.log('insert vote',Category);
+            
             try {
-                const insertVote = await this.userService.giveRolloutVote(userID,menuId);
+                const insertVote = await this.userService.giveRolloutVote(userID,menuId,Category);
                 socket.emit('votegiven', insertVote);
             } catch (error) {
                 console.error('Error giving vote for item:', error);
                 socket.emit('error', 'Error occurred');
             }
         });
-
-
-
 
         socket.on('UpdateProfile', async (data) => {
            

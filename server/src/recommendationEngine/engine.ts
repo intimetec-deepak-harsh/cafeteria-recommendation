@@ -18,4 +18,9 @@ export class Engine {
         const averages = this.feedbackCalculator.calculateAverages();
         return this.feedbackSorter.getTopOverallAvg(averages);
     }
+
+    public getAllCombinedAvg(): FoodItemStats[] {
+        const averages = this.feedbackCalculator.calculateAverages();     
+        return this.feedbackSorter.getallAvgItem(averages);
+    }
 }

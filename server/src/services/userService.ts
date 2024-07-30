@@ -10,18 +10,32 @@ import { RolloutItem } from '../interface/rolloutItem';
 
 class UserService {
     public async authenticateUser(email: string, password: string): Promise<User[]> {
-        if (!email || !password) {
-            throw new Error('Email and password must be provided');
+        try {
+            if (!email || !password) {
+                throw new Error('Email and password must be provided');
+            }
+
+            const [rows] = await db.execute<User[]>(
+                'SELECT * FROM Users WHERE email = ? AND password = ?',
+                [email, password]
+            );
+
+            if (rows.length === 0) {
+                throw new Error('Invalid email or password');
+            }
+
+            return rows;
+        } catch (error) {
+            if (error instanceof Error) {
+                console.error(`Error during authentication: ${error.message}`);
+                throw new Error('Authentication failed, please try again later');
+            } else {
+                console.error('Unexpected error during authentication');
+                throw new Error('An unexpected error occurred, please try again later');
+            }
         }
-        const [rows] = await db.execute<User[]>(
-            'SELECT * FROM Users WHERE email = ? AND password = ?',
-            [email, password]
-        );
-        if (rows.length === 0) {
-            throw new Error('Invalid email or password');
-        }
-        return rows;
     }
+
 
    // getRolloutData
     public async getRolloutData(menu_type: string): Promise<RolloutItem[]> {
@@ -31,7 +45,7 @@ class UserService {
             throw new Error('Menu Type must be provided');
         }
         const [rows] = await db.execute<RolloutItem[]>(
-            'SELECT * FROM recommendation WHERE category = ? AND (recommendation_date = CURDATE() OR recommendation_date = CURDATE() - INTERVAL 1 DAY);',
+           'SELECT * FROM recommendation WHERE category = ? AND (DATE(recommendation_date) = CURDATE())',
             [menu_type]
         );
         return rows;
@@ -58,6 +72,14 @@ class UserService {
 
     public async getDiscardMenu(): Promise<DiscardMenuitem[]> {
         const [rows] = await db.execute<DiscardMenuitem[]>(
+        'SELECT a.*, m.* FROM menu_item_audit a INNER JOIN menuitem m ON a.itemId = m.item_Id WHERE a.avgRating < 3 AND a.avgSentimentRating < 3 AND m.is_discard = 0',
+        );
+        return rows;
+    }
+
+    //discard new attempt
+    public async getNewDiscardMenu(): Promise<DiscardMenuitem[]> {
+        const [rows] = await db.execute<DiscardMenuitem[]>(
         'SELECT  f.feedbackID, f.userId, f.item_Id, m.item_name, f.Comment, f.Rating, f.FeedbackDate  FROM feedback f JOIN  menuitem m ON f.item_Id = m.item_Id WHERE  f.Rating < 3',        
         );
         return rows;
@@ -65,7 +87,7 @@ class UserService {
 
     public async getMenu(): Promise<MenuItem[]> {
         const [rows] = await db.execute<MenuItem[]>(
-            'SELECT * FROM MenuItem',          
+            'SELECT * FROM MenuItem where is_Discard != 1',          
         );
         return rows;
     }
@@ -77,21 +99,22 @@ class UserService {
         return rows;
     }
 
-    public async addNewMenuItem(item_name: string, meal_type: string, price: number,availability_status:boolean): Promise<number> {
-        if (!item_name || !meal_type || !price || !availability_status) {
-            throw new Error('Item name, Meal Type, and rating must be provided');
+        public async addNewMenuItem(item_name: string, meal_type: string, price: number,availability_status:boolean, dietary_type:number, spice_type:number, cuisine_type:number, sweet_tooth_type:number): Promise<number> {
+            if (!item_name || !meal_type || !price || !availability_status || !dietary_type || !spice_type || !cuisine_type || !sweet_tooth_type) {
+                throw new Error('Proper data must be provided');
+            }
+            const [result] =  await db.execute<ResultSetHeader>(
+                'INSERT INTO menuitem (item_name, meal_type, price, availability_status, dietary_type, spice_type, cuisine_type,sweet_tooth_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [item_name, meal_type, price, availability_status, dietary_type, spice_type ,cuisine_type,sweet_tooth_type]
+            );
+            return result.insertId;
         }
-        const [result] =  await db.execute<ResultSetHeader>(
-            'INSERT INTO menuitem (item_name, meal_type, price, availability_status) VALUES (?, ?, ?, ?)',
-            [item_name, meal_type, price, availability_status]
-        );
-        return result.insertId;
-    }
 
     // giveRolloutVote
-    public async giveRolloutVote(userID: number,menuId: number): Promise<void> {
+    public async giveRolloutVote(userID: number,menuId: number,Category: string): Promise<void> {
         const user_Id = userID;
         const menu_Id = menuId;
+        const category = Category;
         const currentDate = new Date(); 
        
         if (!user_Id || !menu_Id) {
@@ -99,8 +122,8 @@ class UserService {
         }
         try {
             const [result] = await db.execute(
-            'INSERT INTO votedfooditem (item_Id,userId,Date,is_voted) VALUES (?, ?, ?, ?)',
-            [menu_Id, user_Id,currentDate,1]
+            'INSERT INTO votedfooditem (item_Id,userId,Date,is_voted,category) VALUES (?, ?, ?, ?, ?)',
+            [menu_Id, user_Id,currentDate,1,category]
         );
         console.log('User Rollout Voted successfully.');
         }catch (error) {
@@ -112,12 +135,12 @@ class UserService {
     public async updateExisitingMenuItem(data:any): Promise<void> {
         console.log('show',data)
         if (!data) {
-            throw new Error('Item name, Meal Type, and rating must be provided');
+            throw new Error('Item name and Meal Type must be provided');
         }
         try {
             await db.execute(
-                'UPDATE menuitem SET item_name = ?, meal_type = ?, rating = ?, price = ?, availability_status = ? WHERE item_Id = ?',
-                [data.item_name, data.meal_type, data.rating, data.price, data.availability_status, data.item_Id]
+                'UPDATE menuitem SET item_name = ?, meal_type = ?,  price = ?, availability_status = ? WHERE item_Id = ?',
+                [data.item_name, data.meal_type,  data.price, data.availability_status, data.item_Id]
             );
     
             console.log('Menu item updated successfully.');
@@ -133,10 +156,8 @@ class UserService {
             throw new Error('Item Id must be provided');
         }
         try {
-            await db.execute(
-                'DELETE FROM menuitem WHERE item_Id = ?',
-                [data.item_Id]
-            );    
+            await db.execute('DELETE FROM notification WHERE menu_id = ?',[data.item_Id]);
+            await db.execute('DELETE FROM menuitem WHERE item_Id = ?', [data.item_Id]);    
     
             console.log('Menu item Deleted successfully.');
         } catch (error) {
@@ -145,10 +166,33 @@ class UserService {
         }
     }
 
+    // DiscardMenuItem
+    public async DiscardMenuItem(data:any): Promise<void> {
+        console.log('show',data)
+        if (!data) {
+            throw new Error('Item Id must be provided');
+        }
+        const connection =  db;
+        try {
+            await connection.execute(
+                'UPDATE menuitem SET is_discard = 1 WHERE item_Id = ?',
+                [data.item_Id]
+            );
+
+             await connection.commit(); // Commit the transaction
+          
+            console.log('Menu item Discard successfully.');
+        } catch (error) {
+            await connection.rollback();
+            console.error('Failed to discard menu item:', error);
+            throw new Error('Error discard menu item');
+        }
+    }
+
 
     public async getFeedback(): Promise<MenuItem[]> {
         const [rows] = await db.execute<MenuItem[]>(
-         'SELECT  mi.item_name, u.name AS user_name, f.Comment, f.Rating FROM  cafeteria_recommendation.feedback f JOIN cafeteria_recommendation.menuitem mi ON f.item_Id = mi.item_Id JOIN cafeteria_recommendation.users u ON f.userId = u.userId ORDER BY f.rating DESC;'
+         'SELECT mi.item_name, u.name AS user_name, f.Comment, f.Rating FROM cafeteria_recommendation.feedback f JOIN cafeteria_recommendation.menuitem mi ON f.item_Id = mi.item_Id JOIN cafeteria_recommendation.users u ON f.userId = u.userId ORDER BY f.Rating DESC LIMIT 10;'
           
         );
         return rows;
@@ -179,10 +223,12 @@ class UserService {
             throw new Error('User Preference must be provided');
         }
     
-        await db.execute(
+        const result = await db.execute(
             'INSERT INTO preference (user_id, dietary_preference, spice_level, cuisine_preference, sweet_tooth) VALUES (?, ?, ?, ?, ?)',
             [user_Id, user_dietary_preference, user_spice_level, user_cuisine_preference, user_sweet_tooth]
         );
+        console.log('update profile',result);
+        
     }
    
 
@@ -208,7 +254,7 @@ class UserService {
     
     public async getAvailableMenuItems(): Promise<MenuItem[]> {
         const [rows] = await db.execute<MenuItem[]>(
-            'SELECT * FROM menuitem where availability_status = 1',          
+            'SELECT * FROM menuitem where availability_status = 1 and is_Discard != 1',          
         );
         return rows;
     }

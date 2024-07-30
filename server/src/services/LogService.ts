@@ -27,7 +27,7 @@ public static async insertIntoLog(action: string,id: number): Promise<ResultSetH
   public async getLog(): Promise<Log[]> {
     try {    
     const [result] = await db.query<(Log & RowDataPacket)[]>(
-        'SELECT * FROM log ORDER BY timestamp DESC'
+        'SELECT * FROM log ORDER BY timestamp DESC LIMIT 10'
       );
 
     return result;

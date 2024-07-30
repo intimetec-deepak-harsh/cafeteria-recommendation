@@ -24,7 +24,6 @@ class App {
         this.socketHandler.setupSocketListeners();
     }
 
-    // Function to handle role-based navigation after authentication
     private handleRoleBasedNavigation = (role: string) => {
         switch (role) {
             case 'Admin':
@@ -34,7 +33,7 @@ class App {
                 new ChefService(this.rl, this.socket).viewMenu();
                 break;
             case 'Employee':
-                new EmployeeService(this.rl, this.socket,this.authService).viewMenu(this.userId!);
+                new EmployeeService(this.rl, this.socket, this.authService).viewMenu(this.userId!);
                 break;
             default:
                 this.rl.close();

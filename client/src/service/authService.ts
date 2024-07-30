@@ -1,8 +1,10 @@
+// AuthService.ts
 import readline from 'readline';
 import { Socket } from 'socket.io-client';
 
 class AuthService {
-    private rlClosed = false;
+    public rlClosed = false;  
+
     constructor(private rl: readline.Interface, private socket: Socket, private callback: (role: string) => void) {
         this.rl.on('close', () => {
             this.rlClosed = true;
@@ -10,17 +12,13 @@ class AuthService {
     }
 
     public authenticateUser = () => {
-        // if (this.rlClosed) {
-        //     console.error('Readline interface is closed.');
-        //     return;
-        // }
-
         this.rl.question('Enter email: ', (email) => {
             this.rl.question('Enter password: ', (password) => {
                 this.socket.emit('authenticate', { email, password }, (error: any) => {
                     if (error) {
                         console.error('Authentication failed:', error);
-                        this.rl.close();
+                         this.rl.close();
+                    
                     }
                 });
             });

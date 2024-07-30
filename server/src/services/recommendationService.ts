@@ -13,20 +13,37 @@ class RecommendationService {
 
     public async getRecommendedFood(category: string) {
         const feedbackData = await this.feedbackService.getFeedbackByCategory(category);
-        console.log('get feedback data', feedbackData);
 
         const feedback = feedbackData.map(row => ({
             item_Id: row.item_Id,
             foodItem: row.foodItem,
             meal_type_name: row.meal_type_name,
+            meal_type:row.id,
             comment: row.Comment,
             rating: row.Rating
         })) as FeedbackData[];
 
-        console.log('fetch feedback', feedback);
 
         const analyzer = new Engine(feedback);
         return analyzer.getTop5ByCombinedAvg();
+    }
+
+    //test data  getAllItemRecommendedFood
+    public async getAllItemRecommendedFood() {
+        const feedbackData = await this.feedbackService.getAllItemFeedback();
+
+        const feedback = feedbackData.map(row => ({
+            item_Id: row.item_Id,
+            foodItem: row.item_name,
+            meal_type_name: row.meal_type_name,
+            meal_type: row.meal_type,
+            comment: row.Comment,
+            rating: row.Rating
+        })) as FeedbackData[];
+
+
+        const analyzer = new Engine(feedback);
+        return analyzer.getAllCombinedAvg();
     }
 
     public async getRolloutRecommendedFood(feedbackData: FeedbackData[]) {
@@ -55,7 +72,6 @@ class RecommendationService {
     
         try {
             const getAllMenuData = await this.feedbackService.getFeedbackByMenuItemId(idsArray);
-            console.log('get all menu data', getAllMenuData);
     
             const transformedData = getAllMenuData
                 .map(row => ({
@@ -184,7 +200,52 @@ class RecommendationService {
             console.error('Error inserting recommended items:', error);
         }
     }
+
+    //-----------------
+    public async addMenuItemAudit(menuItems: any[]) {
+        const connection = db;
+        if (!connection) {
+            console.error('No database connection.');
+            return;
+        }
     
+        try {
+            const insertQuery = `
+                INSERT INTO menu_item_audit (foodItem, itemId,meal_id, meal_type_name, avgRating, avgSentimentRating, combinedAvg, EntryDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+    
+            const updateQuery = `UPDATE menu_item_audit SET foodItem = ?,meal_id =?, meal_type_name = ?, avgRating = ?, avgSentimentRating = ?, combinedAvg = ?, EntryDate = ? WHERE itemId = ?`;
+    
+            for (const item of menuItems) {
+                const { foodItem, itemId, meal_id, meal_type_name, avgRating, avgSentimentRating, combinedAvg } = item;
+    
+                if ([foodItem,itemId,meal_id, meal_type_name, avgRating, avgSentimentRating, combinedAvg].includes(undefined)) {
+                    console.error('Skipping item due to missing required fields:', JSON.stringify(item));
+                    continue;
+                }
+    
+                try {
+                    const [rows] = await connection.execute('SELECT COUNT(*) AS count FROM menu_item_audit WHERE itemId = ?', [itemId]);
+                    const count = (rows as any)[0].count;
+    
+                    if (count > 0) {
+                        // Update the existing entry
+                        await connection.execute(updateQuery, [
+                            foodItem, meal_id, meal_type_name, avgRating, avgSentimentRating, combinedAvg, new Date(), itemId
+                        ]);
+                    } else {
+                        // Insert a new entry
+                        await connection.execute(insertQuery, [
+                            foodItem, itemId, meal_id, meal_type_name, avgRating, avgSentimentRating, combinedAvg, new Date()
+                        ]);
+                    }
+                } catch (queryError) {
+                    console.error('Error inserting or updating menu item audit entry:', queryError);
+                }
+            }
+        } catch (error) {
+            console.error('Error processing menu item audit entries:', error);
+        }
+    }
     
 }
 

@@ -84,36 +84,38 @@ class EmployeeService {
         this.socket.emit('giveFeedback', {item_Id, user_Id, Comment, Rating, feedbackDate});
     }
     
-    private viewNotifications() {
+    private async viewNotifications() {
         this.socket.emit('showEmployeeNotifications'); 
-   
-        this.socket.on('getEmployeeNotification', (EmployeeNotifications: any) => {
-            if (EmployeeNotifications && EmployeeNotifications.showNotificationsEmployee) {
-                console.table(EmployeeNotifications.showNotificationsEmployee.map((item: any) => ({
+    
+        this.socket.on('getEmployeeNotification', (data: any) => {
+            if (data.showNotificationsEmployee) {
+                console.table(data.showNotificationsEmployee.map((item: any) => ({
                     'Message': item.message,
                     'Date': item.notification_date
                 })));
+            } else if (data.message) {
+                console.log(data.message);
             } else {
-                console.log('No employee notifications found.');
+                console.log('No Notifications found.');
             }
     
             console.log('---------------------------------------');
             this.viewMenu(this.userId!); 
         });   
     }
+    
 
     private async giveResponseToRolloutMenu() {
         const mealType = await this.promptUtils.askQuestion('Enter the meal type: (1 for Breakfast, 2 for Lunch, 3 for Dinner)');
         const mealTypeMap = { '1': 'Breakfast', '2': 'Lunch', '3': 'Dinner' };
         const selectedMealType = mealTypeMap[mealType as keyof typeof mealTypeMap] || 'Unknown';
-        console.log(selectedMealType);
-    
-        this.socket.emit('getRolloutitem', { meal_type: selectedMealType }); // Pass the meal type as an object
+        
+        this.socket.emit('getRolloutitem', { meal_type: selectedMealType }); 
         this.socket.on('getRolloutData', async (data: any) => {
+            
             if (data && data.length > 0) {
                 const uniqueItems = new Map<string, any>();
     
-                // Filter unique items based on a unique identifier (e.g., menuName)
                 for (const item of data) {
                     if (!uniqueItems.has(item.menuName)) {
                         uniqueItems.set(item.menuName, item);
@@ -130,7 +132,7 @@ class EmployeeService {
                 console.log('user selected: ',selectItem);
 
                 const userId = this.userId;
-                 this.socket.emit('insertVotedItem', { selectItem ,userId});   
+                 this.socket.emit('insertVotedItem', { selectItem ,userId,selectedMealType});   
                  
                  console.table('Thank you for your vote.');
                  console.log('-----------------------------------------');
@@ -147,14 +149,14 @@ class EmployeeService {
     public async updateProfile(userId: any) {
         const user_Id = userId;
         console.log('check id exist', this.userId);
-        const dietaryPreferenceMap = { '1': 'Vegetarian', '2': 'Non Vegetarian', '3': 'Eggetarian' };
+        const dietaryPreferenceMap = { '1': 'Vegetarian', '2': 'non-vegetarian', '3': 'Eggetarian' };
         const spiceLevelMap = { '1': 'High', '2': 'Medium', '3': 'Low' };
         const cuisinePreferenceMap = { '1': 'North-Indian', '2': 'South-Indian', '3': 'Other' };
 
-        const userDietaryPreferenceInput = await this.promptUtils.askQuestion('Enter your Preference: (1. for Vegetarian, 2. for Non Vegetarian, 3. for Eggetarian)');
-        const userSpiceLevelInput = await this.promptUtils.askQuestion('Enter your Spicy Level: (1. High, 2. Medium, 3. Low)');
-        const userCuisinePreferenceInput = await this.promptUtils.askQuestion('What do you prefer most: (1. North-Indian, 2. South-Indian, 3. Other)');
-        const userSweetToothInput = await this.promptUtils.askQuestion('Do you have a sweet tooth?: (1. for Yes /0. for No)');
+        const userDietaryPreferenceInput = await this.promptUtils.askQuestion('Enter your Preference: (1. for Vegetarian, 2. for non-vegetarian, 3. for Eggetarian): ');
+        const userSpiceLevelInput = await this.promptUtils.askQuestion('Enter your Spicy Level: (1. High, 2. Medium, 3. Low): ');
+        const userCuisinePreferenceInput = await this.promptUtils.askQuestion('What do you prefer most: (1. North-Indian, 2. South-Indian, 3. Other): ');
+        const userSweetToothInput = await this.promptUtils.askQuestion('Do you have a sweet tooth?: (1. for Yes /0. for No): ');
 
         const user_dietary_preference = dietaryPreferenceMap[userDietaryPreferenceInput as keyof typeof dietaryPreferenceMap] || 'Other';
         const user_spice_level = spiceLevelMap[userSpiceLevelInput as keyof typeof spiceLevelMap] || 'Medium';

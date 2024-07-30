@@ -8,4 +8,8 @@ export class FeedbackHandler {
     public getTopOverallAvg(foodItemStats: FoodItemStats[]): FoodItemStats[] {
         return this.sortByOverallAvg(foodItemStats).slice(0, 5);
     }
+
+    public getallAvgItem(foodItemStats: FoodItemStats[]): FoodItemStats[] {
+        return this.sortByOverallAvg(foodItemStats);
+    }
 }
