@@ -1,10 +1,10 @@
 import { io } from 'socket.io-client';
 import readline from 'readline';
-import AdminService from './src/service/adminService';
-import ChefService from './src/service/chefService';
-import EmployeeService from './src/service/employeeService';
-import AuthService from './src/service/authService';
-import SocketHandler from './src/service/socketHandler';
+import AdminUI from './src/ClientUI/adminUI';
+import ChefUI from './src/ClientUI/chefUI';
+import EmployeeUI from './src/ClientUI/employeeUI';
+import AuthUI from './src/ClientUI/loginUI';
+import SocketHandler from './src/Handler/socketHandler';
 
 class App {
     private rl = readline.createInterface({
@@ -15,25 +15,27 @@ class App {
     private username: string | undefined;
     private userId: number | undefined;
     private socket = io('http://localhost:8080');
-    private authService: AuthService;
     private socketHandler: SocketHandler;
+    private authUI: AuthUI;
 
     constructor() {
-        this.authService = new AuthService(this.rl, this.socket, this.handleRoleBasedNavigation);
-        this.socketHandler = new SocketHandler(this.rl, this.socket, this.authService, this.handleRoleBasedNavigation, this.setUserId);
+        this.socketHandler = new SocketHandler(this.socket);
+        this.authUI = new AuthUI(this.rl, this.socketHandler, this.handleRoleBasedNavigation);
+
         this.socketHandler.setupSocketListeners();
+        this.authUI.loginUser();
     }
 
     private handleRoleBasedNavigation = (role: string) => {
         switch (role) {
             case 'Admin':
-                new AdminService(this.rl, this.socket).viewMenu();
+                new AdminUI(this.rl, this.socketHandler).viewMenu();
                 break;
             case 'Chef':
-                new ChefService(this.rl, this.socket).viewMenu();
+                new ChefUI(this.rl, this.socketHandler).viewMenu();
                 break;
             case 'Employee':
-                new EmployeeService(this.rl, this.socket, this.authService).viewMenu(this.userId!);
+                new EmployeeUI(this.rl, this.socketHandler, this.authUI).viewMenu(this.userId!);
                 break;
             default:
                 this.rl.close();

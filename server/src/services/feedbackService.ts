@@ -32,11 +32,8 @@ export class FeedbackService {
     public async getFeedbackByCategory(category: string): Promise<FeedbackData[]> {  
         const connection = db;
         if (connection) {
-            const query = `
-            SELECT f.item_Id, m.item_name AS foodItem,mt.id, mt.meal_type_name,f.Comment, f.Rating 
-            FROM feedback f 
-            JOIN menuitem m ON f.item_Id = m.item_Id 
-            JOIN meal_type mt ON m.meal_type = mt.id 
+            const query = `SELECT f.item_Id, m.item_name AS foodItem,mt.id, mt.meal_type_name,f.Comment, f.Rating 
+            FROM feedback f JOIN menuitem m ON f.item_Id = m.item_Id JOIN meal_type mt ON m.meal_type = mt.id 
             WHERE mt.meal_type_name = ? AND m.is_discard = 0;`;      
             const [rows] = await connection.execute<FeedbackData[]>(query, [category]);
               
@@ -46,7 +43,6 @@ export class FeedbackService {
         }
     }
 
-    //get feedback by menu item id
     public async getFeedbackByMenuItemId(idsArray: string[]): Promise<FeedbackData[]> {  
 
         const connection = db;
@@ -69,7 +65,7 @@ export class FeedbackService {
     }
 
 //feedback data from the rollout ids
-public async getFeedbackByIds(idsArray: string[]): Promise<FeedbackData[]> {  
+    public async getFeedbackByIds(idsArray: string[]): Promise<FeedbackData[]> {  
     const connection = db;
     if (connection) {
         const placeholders = idsArray.map(() => '?').join(', ');

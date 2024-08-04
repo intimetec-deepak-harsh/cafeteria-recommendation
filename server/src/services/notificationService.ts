@@ -5,7 +5,7 @@ import { Notification } from "../interface/notification";
 import { User } from "../interface/user";
 import userService from "../services/userService";
 import DateService from "./DateService";
-import LogService from "./LogService";
+import LogService from "./logService";
 
  class NotificationService {
 public  static async addNotificationOLD(notification: Notification): Promise<any> {

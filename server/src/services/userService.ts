@@ -99,16 +99,16 @@ class UserService {
         return rows;
     }
 
-        public async addNewMenuItem(item_name: string, meal_type: string, price: number,availability_status:boolean, dietary_type:number, spice_type:number, cuisine_type:number, sweet_tooth_type:number): Promise<number> {
-            if (!item_name || !meal_type || !price || !availability_status || !dietary_type || !spice_type || !cuisine_type || !sweet_tooth_type) {
-                throw new Error('Proper data must be provided');
-            }
-            const [result] =  await db.execute<ResultSetHeader>(
-                'INSERT INTO menuitem (item_name, meal_type, price, availability_status, dietary_type, spice_type, cuisine_type,sweet_tooth_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                [item_name, meal_type, price, availability_status, dietary_type, spice_type ,cuisine_type,sweet_tooth_type]
-            );
-            return result.insertId;
+    public async addNewMenuItem(item_name: string, meal_type: string, price: number,availability_status:boolean, dietary_type:number, spice_type:number, cuisine_type:number, sweet_tooth_type:number): Promise<number> {
+        if (!item_name || !meal_type || !price || !availability_status || !dietary_type || !spice_type || !cuisine_type || !sweet_tooth_type) {
+            throw new Error('Proper data must be provided');
         }
+        const [result] =  await db.execute<ResultSetHeader>(
+            'INSERT INTO menuitem (item_name, meal_type, price, availability_status, dietary_type, spice_type, cuisine_type,sweet_tooth_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [item_name, meal_type, price, availability_status, dietary_type, spice_type ,cuisine_type,sweet_tooth_type]
+        );
+        return result.insertId;
+    }
 
     // giveRolloutVote
     public async giveRolloutVote(userID: number,menuId: number,Category: string): Promise<void> {

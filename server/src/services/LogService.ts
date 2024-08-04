@@ -10,7 +10,6 @@ public static async insertIntoLog(action: string,id: number): Promise<ResultSetH
         action: action,
         };
 
-        // console.log('logData',logData);
         
     const [result] = await db.execute<ResultSetHeader>(
         'INSERT INTO log (user_id, action, timestamp) VALUES (?, ?, CURRENT_TIMESTAMP)',

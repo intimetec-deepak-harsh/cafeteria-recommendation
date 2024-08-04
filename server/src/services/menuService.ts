@@ -1,7 +1,6 @@
 import { db } from '../database/connection';
 import { MenuItem } from '../interface/menuItem';
 import { FeedbackData } from '../interface/feedback';
-// import sentimentAnalysisService from './sentimentService';
 import { RowDataPacket } from 'mysql2/promise';
 
 class MenuService {
