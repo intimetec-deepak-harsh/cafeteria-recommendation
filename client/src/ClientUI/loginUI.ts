@@ -21,10 +21,10 @@ class LoginUI {
         if (this.isAuthenticating) return;  
         this.isAuthenticating = true;
 
-        this.loginUser();
+        this.promptUserCredentials();
     };
 
-    public loginUser = () => {
+    public promptUserCredentials = () => {
         setTimeout(() => {
             this.rl.question('Enter email: ', (email) => {
                 this.rl.question('Enter password: ', (password) => {
@@ -49,7 +49,7 @@ class LoginUI {
         this.socketHandler.onEvent('authentication_failed', (message) => {
             console.error('Authentication failed:', message);
             this.isAuthenticating = false;  
-            this.loginUser(); 
+            this.promptUserCredentials(); 
         });
 
         this.socketHandler.onEvent('disconnect', () => {
@@ -61,7 +61,7 @@ class LoginUI {
 
         this.socketHandler.onEvent('connect', () => {
             if (!this.isAuthenticating) {
-                this.loginUser();
+                this.promptUserCredentials();
             }
         });
     };

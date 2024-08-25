@@ -39,7 +39,7 @@ class SocketHandler {
                 
                 if (user && user.length > 0) {
                     const userName = user[0].name;                    
-                    socket.emit('user', userName);
+                    socket.emit('user', userName);                    
                     const userID = user[0].userId;       
 
                     socket.emit('userID', userID);
@@ -54,9 +54,7 @@ class SocketHandler {
                     if (role && role.length > 0) {
                         const roleName = role[0].role;                       
                         socket.emit('role', roleName);
-
                   
-                    //log data here
                     const action = `${userName} logged in as ${role[0].role}`;
                     console.log('see action:', action);
                     await LogService.insertIntoLog(action, user[0].userId as number);
@@ -81,10 +79,7 @@ class SocketHandler {
             if (showMenu && showMenu.length > 0) {
                 const menuName = {showMenu};                
                 socket.emit('MenuDetails', menuName);
-            }else {
-
             }
-
         });
         
         socket.on('viewMealType', async () => {     
@@ -95,7 +90,6 @@ class SocketHandler {
                 const menuName = { showMenu };
                 socket.emit('getMealData', menuName);
             } else {
-                // Handle the case where there is no data
                 console.log('No meal types found.');
             }
         });

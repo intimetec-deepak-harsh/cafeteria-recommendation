@@ -14,12 +14,12 @@ export class Engine {
         this.feedbackSorter = new FeedbackHandler();
     }
 
-    public getTop5ByCombinedAvg(): FoodItemStats[] {
+     getTop5ByCombinedAvg(): FoodItemStats[] {
         const averages = this.feedbackCalculator.calculateAverages();
         return this.feedbackSorter.getTopOverallAvg(averages);
     }
 
-    public getAllCombinedAvg(): FoodItemStats[] {
+     getAllCombinedAvg(): FoodItemStats[] {
         const averages = this.feedbackCalculator.calculateAverages();     
         return this.feedbackSorter.getallAvgItem(averages);
     }

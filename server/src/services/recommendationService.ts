@@ -11,7 +11,7 @@ class RecommendationService {
         this.feedbackService = feedbackService;
     }
 
-    public async getRecommendedFood(category: string) {
+     async getRecommendedFood(category: string) {
         const feedbackData = await this.feedbackService.getFeedbackByCategory(category);
 
         const feedback = feedbackData.map(row => ({
@@ -28,8 +28,7 @@ class RecommendationService {
         return analyzer.getTop5ByCombinedAvg();
     }
 
-    //test data  getAllItemRecommendedFood
-    public async getAllItemRecommendedFood() {
+     async getAllItemRecommendedFood() {
         const feedbackData = await this.feedbackService.getAllItemFeedback();
 
         const feedback = feedbackData.map(row => ({
@@ -46,7 +45,7 @@ class RecommendationService {
         return analyzer.getAllCombinedAvg();
     }
 
-    public async getRolloutRecommendedFood(feedbackData: FeedbackData[]) {
+     async getRolloutRecommendedFood(feedbackData: FeedbackData[]) {
         const feedback = feedbackData.map(row => ({
             item_Id: row.item_Id,
             foodItem: row.foodItem,
@@ -59,7 +58,7 @@ class RecommendationService {
         return analyzer.getTop5ByCombinedAvg();
     }
 
-    public async analyzeRolloutInput(itemId: any) {
+     async analyzeRolloutInput(itemId: any) {
         const connection = db;
         if (!connection) {
             throw new Error('No database connection.');
@@ -76,7 +75,7 @@ class RecommendationService {
             const transformedData = getAllMenuData
                 .map(row => ({
                     item_Id: row.item_Id,
-                    meal_type: this.convertMealType(row.mealType), // Convert meal type here
+                    meal_type: this.convertMealType(row.mealType), 
                     foodItem: row.foodItem,
                     comment: row.Comment,
                     rating: row.Rating,
@@ -114,18 +113,15 @@ class RecommendationService {
         }
     }
 
-    public async checkIfDataExists(category: string): Promise<boolean> {
+     async checkIfDataExists(category: string): Promise<boolean> {
         const connection = db;
-        const checkQuery = `
-            SELECT COUNT(*) as count FROM recommendation 
-            WHERE category = ? AND DATE(recommendation_date) = CURDATE()
-        `;
+        const checkQuery = `SELECT COUNT(*) as count FROM recommendation WHERE category = ? AND DATE(recommendation_date) = CURDATE()`;
         const [rows] = await connection!.execute(checkQuery, [category]);
         const count = (rows as any)[0].count;
         return count > 0;
     }
 
-    public async processRecommendedItems(recommendedItems: any) {
+     async processRecommendedItems(recommendedItems: any) {
         try {
             const dataExists = await this.checkIfDataExists(recommendedItems[0].itemId);
             if (dataExists) {
@@ -139,7 +135,7 @@ class RecommendationService {
         }
     }
 
-    public async insertRecommendedItems(recommendedItems: any[]) {  
+     async insertRecommendedItems(recommendedItems: any[]) {  
         const connection = db;
         if (!connection) {
             console.error('No database connection.');
@@ -149,8 +145,7 @@ class RecommendationService {
         try {
             const insertQuery = `
                 INSERT INTO recommendation(menuitem_id, recommendation_date, category, menuName, rating, sentimentscore)
-                VALUES (?, NOW(), ?, ?, ?, ?)
-            `;
+                VALUES (?, NOW(), ?, ?, ?, ?)`;
     
             for (const item of recommendedItems) {
                 const { itemId, foodItem, meal_type, avgRating, avgSentimentRating } = item;
@@ -178,11 +173,11 @@ class RecommendationService {
     
                 try {
                     await connection.execute(insertQuery, [
-                        itemId, // Updated to match the database column
+                        itemId,
                         category,
-                        foodItem, // Updated to match the database column
-                        avgRating, // Updated to match the database column
-                        avgSentimentRating // Updated to match the database column
+                        foodItem,
+                        avgRating,
+                        avgSentimentRating 
                     ]);
     
                     const menuId = itemId;
@@ -201,8 +196,8 @@ class RecommendationService {
         }
     }
 
-    //-----------------
-    public async addMenuItemAudit(menuItems: any[]) {
+
+     async addMenuItemAudit(menuItems: any[]) {
         const connection = db;
         if (!connection) {
             console.error('No database connection.');
@@ -228,12 +223,12 @@ class RecommendationService {
                     const count = (rows as any)[0].count;
     
                     if (count > 0) {
-                        // Update the existing entry
+                    
                         await connection.execute(updateQuery, [
                             foodItem, meal_id, meal_type_name, avgRating, avgSentimentRating, combinedAvg, new Date(), itemId
                         ]);
                     } else {
-                        // Insert a new entry
+                  
                         await connection.execute(insertQuery, [
                             foodItem, itemId, meal_id, meal_type_name, avgRating, avgSentimentRating, combinedAvg, new Date()
                         ]);

@@ -3,7 +3,7 @@ import { Log } from "../interface/log";
 import { db } from '../database/connection';
 
 class LogService {
-public static async insertIntoLog(action: string,id: number): Promise<ResultSetHeader> {
+ static async insertIntoLog(action: string,id: number): Promise<ResultSetHeader> {
     try {
         const logData = {
         user_id: id,
@@ -23,7 +23,7 @@ public static async insertIntoLog(action: string,id: number): Promise<ResultSetH
       }
   }
 
-  public async getLog(): Promise<Log[]> {
+   async getLog(): Promise<Log[]> {
     try {    
     const [result] = await db.query<(Log & RowDataPacket)[]>(
         'SELECT * FROM log ORDER BY timestamp DESC LIMIT 10'

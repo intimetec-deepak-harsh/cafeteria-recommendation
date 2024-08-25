@@ -1,5 +1,4 @@
 import readline from 'readline';
-import { MealType, Recommendation } from "../Interface/recommendation";
 import UserPromptUtils from '../utils/userPrompt';
 import SocketHandler from '../Handler/socketHandler';
 
@@ -10,65 +9,74 @@ class ChefUI {
         this.promptUtils = new UserPromptUtils(this.rl);
     }
 
-    public viewMenu() {
+    public displayMainMenu() {
         console.log('1. View Menu Items');
         console.log('2. Generate Monthly Report');
-        // console.log('3. View Notifications');
-        console.log('4. View Recommended Food');
-        console.log('5. Rollout Menu Item');
-        console.log('6. View All Available Food Items');
-        console.log('7. View Voted Items');
-        console.log('8. View All the Feedbacks.');
-        console.log('9. View Discard Menu');
-        console.log('10. Exit');
+        console.log('3. View Recommended Food');
+        console.log('4. Rollout Menu Item');
+        console.log('5. View All Available Food Items');
+        console.log('6. View Voted Items');
+        console.log('7. View All the Feedbacks.');
+        console.log('8. View Discard Menu');
+        console.log('9. Exit');
 
         this.rl.question('Select Option: ', (option) => {
-            this.handleMenuOption(option);
+            this.processMenuSelection(option);
         });
     }
 
-    private handleMenuOption(option: string): void {
-        switch (option) {
-            case '1':
-                this.viewAllMenuItems();
-                break;
-            case '2':
-                this.generateMonthlyReport();
-                break;
-            case '3':
-                // this.viewNotifications();
-                break;
-            case '4':
-                this.viewFoodRecommendationForMeal();
-                break;
-            case '5':
-                this.rolloutRecommendedMenu();
-                break;
-            case '6':
-                this.viewAvailableFoodItems();
-                break;
-            case '7':
-                this.viewVotedItems();
-                break;
-            case '8':
-                this.viewFeedbacks();
-                break;
-            case '9':
-                this.viewDiscardMenuList();
-                break;
-            case '10':
-                console.log('Exiting...');
-                this.rl.close();
-                this.socketHandler.emitEvent('disconnect');
-                break;
-            default:
-                console.log('Invalid option, please try again.');
-                this.viewMenu();
-                break;
-        }
+    private processMenuSelection(option: string): void {
+        try {    
+            switch (option) {
+                case '1':
+                    this.displayAllMenuItems();
+                    break;
+                case '2':
+                    this.generateMonthlyReport();
+                    break;
+                case '3':
+                    this.displayMealRecommendations();
+                    break;
+                case '4':
+                    this.rolloutRecommendedMenu();         
+                    break;
+                case '5':
+                    this.viewAvailableFoodItems();
+                    break;
+                case '6':
+                    this.displayVotedItems();
+                    break;
+                case '7':
+                    this.displayFeedbacks();
+                    break;
+                case '8':
+                    this.viewDiscardMenuList();
+                    break;
+                case '9':
+                    this.exitApplication();
+                    break;
+                default:
+                    console.log('Invalid option, please try again.');
+                    this.displayMainMenu();
+                    break;
+            }
+        } catch (error) {
+            if (error instanceof Error) {
+                console.error('An error occurred:', error.message);
+            } else {
+                console.error('An unexpected error occurred');
+            }
+            this.displayMainMenu();
+        }    
     }
 
-    private viewAllMenuItems() {
+    private exitApplication(): void {
+        console.log('Exiting...');
+        this.rl.close();
+        this.socketHandler.emitEvent('disconnect');
+    }
+
+    private displayAllMenuItems() {
         this.socketHandler.emitEvent('viewMenu');
         this.socketHandler.onEvent('MenuDetails', (data: any) => {
             const tableData = data.showMenu.map((item: any) => ({
@@ -79,50 +87,42 @@ class ChefUI {
                 Availability: item.availability_status === 1 ? 'Yes' : 'No'
             }));
             console.table(tableData);
-            this.viewMenu();
+            this.displayMainMenu();
         });
     }
 
     private async generateMonthlyReport() {
-        const startDate = await this.promptUtils.askQuestion('Enter Start Date in (YYYY-MM-DD) Format: ');
-        const endDate = await this.promptUtils.askQuestion('Enter End Date in (YYYY-MM-DD) Format: ');
-        
-        this.socketHandler.emitEvent('generateMonthlyReport', { startDate, endDate });
-
-        this.socketHandler.onEvent('generateFeedbackReport', (data: any) => {
-            if (data === 'Error in Generating feedback Monthly Report.') {
-                console.log(data);
-            } else {
-                const tableData = data.map((item: any) => ({
-                    'Menu ID': item.menu_id,
-                    'Recom. ID': item.recommendation_id,
-                    'Avg Rating': item.average_rating,
-                    'Total Feedbacks': item.total_feedbacks,
-                    'Comments': item.comments
-                }));
-                console.table(tableData);
-            }
-            this.viewMenu();
-        });
+        try {
+            const startDate = await this.promptUtils.askQuestion('Enter Start Date in (YYYY-MM-DD) Format: ');
+            const endDate = await this.promptUtils.askQuestion('Enter End Date in (YYYY-MM-DD) Format: ');
+            
+            this.socketHandler.emitEvent('generateMonthlyReport', { startDate, endDate });
+            this.socketHandler.onEvent('generateFeedbackReport', (data: any) => {
+                if (data === 'Error in Generating feedback Monthly Report.') {
+                    console.log(data);
+                } else {
+                    const tableData = data.map((item: any) => ({
+                        'Menu ID': item.menu_id,
+                        'Recom. ID': item.recommendation_id,
+                        'Avg Rating': item.average_rating,
+                        'Total Feedbacks': item.total_feedbacks,
+                        'Comments': item.comments
+                    }));
+                    console.table(tableData);
+                }
+                this.displayMainMenu();
+            });
+        } catch (error) {
+            console.error('Error generating report:', error);
+            this.displayMainMenu();
+        }    
     }
 
-    private viewNotifications() {
-        this.socketHandler.emitEvent('seeNotifications'); 
-        this.socketHandler.onEvent('showNotification', (Notification: any) => {
-            console.table(Notification.showNotifications.map((item: any) => ({
-                'Message': item.message,
-                'Date': item.notification_date
-            })));
-            console.log('---------------------------------------');
-            this.viewMenu(); 
-        });   
-    }
-
-    private async viewFoodRecommendationForMeal() {
+    private async displayMealRecommendations() {
         console.log('Type 1 for Breakfast');
         console.log('Type 2 for Lunch');
         console.log('Type 3 for Dinner');
-
+        try {    
         const categoryChoice = await this.promptUtils.askQuestion('Enter choice: ');
 
         let category: string;
@@ -153,14 +153,23 @@ class ChefUI {
                 'Sentiment Score': item.avgSentimentRating,
             })));
             console.log('---------------------------------------');
-            this.viewMenu();
+            this.displayMainMenu();
         });
+    } catch (error) {
+        console.error('Error fetching recommendations:', error);
+        this.displayMainMenu();
+    }
     }
 
     public async rolloutRecommendedMenu() {
-        const selectedItemId = await this.promptUtils.askQuestion('Enter all the itemId you want to roll out: ');
-        this.socketHandler.emitEvent('rolloutRecommendedFood', { selectedItemId });
-        this.viewMenu();
+        try {
+            const selectedItemId = await this.promptUtils.askQuestion('Enter all the itemId you want to roll out: ');
+            this.socketHandler.emitEvent('rolloutRecommendedFood', { selectedItemId });
+            this.displayMainMenu();
+        } catch (error) {
+            console.error('Error during rollout:', error);
+            this.displayMainMenu();
+        }    
     }
 
     private viewAvailableFoodItems() {
@@ -172,11 +181,11 @@ class ChefUI {
                 Price: item.price,
             }));
             console.table(tableData);
-            this.viewMenu();
+            this.displayMainMenu();
         });
     }
 
-    private async viewVotedItems() {
+    private async displayVotedItems() {
         console.log('Type 1 for Breakfast');
         console.log('Type 2 for Lunch');
         console.log('Type 3 for Dinner');
@@ -215,11 +224,11 @@ class ChefUI {
                 console.log('No voted items found.');
             }
             console.log('---------------------------------------');
-            this.viewMenu();
+            this.displayMainMenu();
         });
     }
 
-    private viewFeedbacks() {
+    private displayFeedbacks() {
         this.socketHandler.emitEvent('viewFeedback');
         this.socketHandler.onEvent('viewFeedback', (feedbackData: any) => {
             console.table(feedbackData.showFeedback.map((item: any) => ({
@@ -229,7 +238,7 @@ class ChefUI {
                 'Comments': item.Comment
             })));
             console.log('---------------------------------------');
-            this.viewMenu();
+            this.displayMainMenu();
         });
     }
 
@@ -251,7 +260,7 @@ class ChefUI {
             if (removeItem === '1') {
                 const item_Id = await this.promptUtils.askQuestion('Enter Item ID you want to remove: ');
                 this.socketHandler.emitEvent('DiscardMenuItem', { item_Id });
-                this.viewMenu();
+                this.displayMainMenu();
             } else {
                 console.log('---------------------------------------');
                 console.log('Get Detailed Feedback:');
@@ -273,14 +282,14 @@ class ChefUI {
                 } else {
                     console.log('Invalid Item ID entered.');
                 }
-                this.viewMenu();
+                this.displayMainMenu();
             }
         });
 
         this.socketHandler.onEvent('noData', (message: string) => {
             console.log('Output:', message);
             console.log('---------------------------------------');
-            this.viewMenu();
+            this.displayMainMenu();
         });
     }
 }

@@ -1,5 +1,4 @@
 import { db } from '../database/connection';
-import { RowDataPacket } from 'mysql2/promise';
 import { User } from '../interface/user';
 import { Role } from '../interface/role';
 import { MenuItem } from '../interface/menuItem';
@@ -9,36 +8,48 @@ import { DiscardMenuitem } from '../interface/discardItems';
 import { RolloutItem } from '../interface/rolloutItem';
 
 class UserService {
-    public async authenticateUser(email: string, password: string): Promise<User[]> {
+
+     async authenticateUser(email: string, password: string): Promise<User[]> {
+        this.validateCredentials(email, password);
+
         try {
-            if (!email || !password) {
-                throw new Error('Email and password must be provided');
-            }
-
-            const [rows] = await db.execute<User[]>(
-                'SELECT * FROM Users WHERE email = ? AND password = ?',
-                [email, password]
-            );
-
-            if (rows.length === 0) {
-                throw new Error('Invalid email or password');
-            }
-
-            return rows;
+            const users = await this.getUserByEmailAndPassword(email, password);
+            return users;
         } catch (error) {
-            if (error instanceof Error) {
-                console.error(`Error during authentication: ${error.message}`);
-                throw new Error('Authentication failed, please try again later');
-            } else {
-                console.error('Unexpected error during authentication');
-                throw new Error('An unexpected error occurred, please try again later');
-            }
+            this.handleAuthenticationError(error);
+        }
+    }
+
+    private validateCredentials(email: string, password: string): void {
+        if (!email || !password) {
+            console.error('Email and password must be provided');
+            throw new Error('Email and password must be provided');
+        }
+    }
+    
+    private async getUserByEmailAndPassword(email: string, password: string): Promise<User[]> {
+        const [rows] = await db.execute<User[]>(
+            'SELECT * FROM Users WHERE email = ? AND password = ?',
+            [email, password]
+        );
+        return rows;
+    }
+    private handleAuthenticationError(error: unknown): never {
+        const userFriendlyMessage = this.getUserFriendlyErrorMessage(error);
+        console.error(userFriendlyMessage);
+        throw new Error(userFriendlyMessage);
+    }
+
+    private getUserFriendlyErrorMessage(error: unknown): string {
+        if (error instanceof Error) {
+            return `Error during authentication: ${error.message}`;
+        } else {
+            return 'An unexpected error occurred, please try again later';
         }
     }
 
 
-   // getRolloutData
-    public async getRolloutData(menu_type: string): Promise<RolloutItem[]> {
+     async getRolloutData(menu_type: string): Promise<RolloutItem[]> {
         console.log('Menu type', menu_type);
 
         if (!menu_type) {
@@ -52,7 +63,7 @@ class UserService {
     }
 
 
-    public async getUserRole(userId: number): Promise<Role[]> {
+     async getUserRole(userId: number): Promise<Role[]> {
         if (!userId) {
             throw new Error('User ID must be provided');
         }
@@ -63,43 +74,42 @@ class UserService {
         return rows;
     }
 
-    public static async getUsers(): Promise<User[]> {
+     async getUsers(): Promise<User[]> {
         const [rows] = await db.execute<User[]>(
             'SELECT * FROM users',          
         );
         return rows;
     }
 
-    public async getDiscardMenu(): Promise<DiscardMenuitem[]> {
+     async getDiscardMenu(): Promise<DiscardMenuitem[]> {
         const [rows] = await db.execute<DiscardMenuitem[]>(
         'SELECT a.*, m.* FROM menu_item_audit a INNER JOIN menuitem m ON a.itemId = m.item_Id WHERE a.avgRating < 3 AND a.avgSentimentRating < 3 AND m.is_discard = 0',
         );
         return rows;
     }
 
-    //discard new attempt
-    public async getNewDiscardMenu(): Promise<DiscardMenuitem[]> {
+     async getNewDiscardMenu(): Promise<DiscardMenuitem[]> {
         const [rows] = await db.execute<DiscardMenuitem[]>(
         'SELECT  f.feedbackID, f.userId, f.item_Id, m.item_name, f.Comment, f.Rating, f.FeedbackDate  FROM feedback f JOIN  menuitem m ON f.item_Id = m.item_Id WHERE  f.Rating < 3',        
         );
         return rows;
     }
 
-    public async getMenu(): Promise<MenuItem[]> {
+     async getMenu(): Promise<MenuItem[]> {
         const [rows] = await db.execute<MenuItem[]>(
             'SELECT * FROM MenuItem where is_Discard != 1',          
         );
         return rows;
     }
 
-    public async getSpecificMenu(item_Id:number): Promise<MenuItem[]> {
+     async getSpecificMenu(item_Id:number): Promise<MenuItem[]> {
         const [rows] = await db.execute<MenuItem[]>(
             'SELECT * FROM MenuItem where item_Id = ?', [item_Id]          
         );
         return rows;
     }
 
-    public async addNewMenuItem(item_name: string, meal_type: string, price: number,availability_status:boolean, dietary_type:number, spice_type:number, cuisine_type:number, sweet_tooth_type:number): Promise<number> {
+     async addNewMenuItem(item_name: string, meal_type: string, price: number,availability_status:boolean, dietary_type:number, spice_type:number, cuisine_type:number, sweet_tooth_type:number): Promise<number> {
         if (!item_name || !meal_type || !price || !availability_status || !dietary_type || !spice_type || !cuisine_type || !sweet_tooth_type) {
             throw new Error('Proper data must be provided');
         }
@@ -110,8 +120,7 @@ class UserService {
         return result.insertId;
     }
 
-    // giveRolloutVote
-    public async giveRolloutVote(userID: number,menuId: number,Category: string): Promise<void> {
+     async giveRolloutVote(userID: number,menuId: number,Category: string): Promise<void> {
         const user_Id = userID;
         const menu_Id = menuId;
         const category = Category;
@@ -132,8 +141,7 @@ class UserService {
         }
     }
 
-    public async updateExisitingMenuItem(data:any): Promise<void> {
-        console.log('show',data)
+     async updateExisitingMenuItem(data:any): Promise<void> {
         if (!data) {
             throw new Error('Item name and Meal Type must be provided');
         }
@@ -150,7 +158,7 @@ class UserService {
         }
     }
 
-    public async deleteExisitingMenuItem(data:any): Promise<void> {
+     async deleteExisitingMenuItem(data:any): Promise<void> {
         console.log('show',data)
         if (!data) {
             throw new Error('Item Id must be provided');
@@ -166,8 +174,8 @@ class UserService {
         }
     }
 
-    // DiscardMenuItem
-    public async DiscardMenuItem(data:any): Promise<void> {
+    
+     async DiscardMenuItem(data:any): Promise<void> {
         console.log('show',data)
         if (!data) {
             throw new Error('Item Id must be provided');
@@ -179,7 +187,7 @@ class UserService {
                 [data.item_Id]
             );
 
-             await connection.commit(); // Commit the transaction
+             await connection.commit(); 
           
             console.log('Menu item Discard successfully.');
         } catch (error) {
@@ -190,7 +198,7 @@ class UserService {
     }
 
 
-    public async getFeedback(): Promise<MenuItem[]> {
+     async getFeedback(): Promise<MenuItem[]> {
         const [rows] = await db.execute<MenuItem[]>(
          'SELECT mi.item_name, u.name AS user_name, f.Comment, f.Rating FROM cafeteria_recommendation.feedback f JOIN cafeteria_recommendation.menuitem mi ON f.item_Id = mi.item_Id JOIN cafeteria_recommendation.users u ON f.userId = u.userId ORDER BY f.Rating DESC LIMIT 10;'
           
@@ -198,9 +206,8 @@ class UserService {
         return rows;
     }
 
-    public async giveFeedback(item_Id: number, userId: number,Comment: string,Rating: number,feedbackDate:Date): Promise<void> {
+     async giveFeedback(item_Id: number, userId: number,Comment: string,Rating: number,feedbackDate:Date): Promise<void> {
         let user = userId;
-        // console.log('come inside',user, item_Id, Comment, Rating, feedbackDate)
         if (!item_Id || !userId || !Comment || !Rating || !feedbackDate) {
             throw new Error('Item name, Feedback, and rating must be provided');
         }
@@ -210,16 +217,10 @@ class UserService {
         );
     }
 
-
-    // updateProfile
-
-    public async updateProfile(user_Id: number, user_dietary_preference: string, user_spice_level: string, user_cuisine_preference: string, user_sweet_tooth: number): Promise<void> {
+     async updateProfile(user_Id: number, user_dietary_preference: string, user_spice_level: string, user_cuisine_preference: string, user_sweet_tooth: number): Promise<void> {
         const userId = +user_Id;
 
-        console.log('get user Id', userId);
-        console.log('come inside', user_Id, user_dietary_preference, user_spice_level, user_cuisine_preference, user_sweet_tooth);
-    
-        if (!user_Id || !user_dietary_preference || !user_spice_level || !user_cuisine_preference || user_sweet_tooth === undefined) {
+        if (!user_Id || !user_dietary_preference || !user_spice_level || !user_cuisine_preference || user_sweet_tooth ) {
             throw new Error('User Preference must be provided');
         }
     
@@ -233,7 +234,7 @@ class UserService {
    
 
 
-    public async  updateItemAvailability(data:any): Promise<void> {
+     async  updateItemAvailability(data:any): Promise<void> {
         console.log('Data here ', data);
         if (!data) {
             throw new Error('Item Id and Availability must be provided');
@@ -252,14 +253,14 @@ class UserService {
     }
 
     
-    public async getAvailableMenuItems(): Promise<MenuItem[]> {
+     async getAvailableMenuItems(): Promise<MenuItem[]> {
         const [rows] = await db.execute<MenuItem[]>(
             'SELECT * FROM menuitem where availability_status = 1 and is_Discard != 1',          
         );
         return rows;
     }
 
-    public async getMealType(): Promise<MealType[]> {
+     async getMealType(): Promise<MealType[]> {
         const [rows] = await db.execute<MealType[]>(
             'SELECT Distinct meal_type_name FROM meal_type',          
         );

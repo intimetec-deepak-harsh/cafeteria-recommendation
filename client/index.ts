@@ -12,8 +12,7 @@ class App {
         output: process.stdout
     });
 
-    private username: string | undefined;
-    private userId: number | undefined;
+    private userId: number | any;
     private socket = io('http://localhost:8080');
     private socketHandler: SocketHandler;
     private authUI: AuthUI;
@@ -23,29 +22,25 @@ class App {
         this.authUI = new AuthUI(this.rl, this.socketHandler, this.handleRoleBasedNavigation);
 
         this.socketHandler.setupSocketListeners();
-        this.authUI.loginUser();
+        this.authUI.promptUserCredentials();
     }
 
     private handleRoleBasedNavigation = (role: string) => {
         switch (role) {
             case 'Admin':
-                new AdminUI(this.rl, this.socketHandler).viewMenu();
+                new AdminUI(this.rl, this.socketHandler).displayMenu();
                 break;
             case 'Chef':
-                new ChefUI(this.rl, this.socketHandler).viewMenu();
+                new ChefUI(this.rl, this.socketHandler).displayMainMenu();
                 break;
             case 'Employee':
-                new EmployeeUI(this.rl, this.socketHandler, this.authUI).viewMenu(this.userId!);
+                new EmployeeUI(this.rl, this.socketHandler).showMenu(this.userId!);
                 break;
             default:
                 this.rl.close();
                 break;
         }
     };
-
-    private setUserId = (userId: number) => {
-        this.userId = userId;
-    }
 }
 
 export default App;

@@ -1,13 +1,9 @@
 import { RowDataPacket } from 'mysql2/promise';
-// import MySQLConnection from '../database/mySQLConnection';
 import { db } from '../database/connection';
 import { FeedbackData } from '../interface/feedback';
-import { MonthlyFeedbackReport } from '../interface/MonthlyFeedbackReport';
 
 export class FeedbackService {
-
-
-    public async getAllFeedback(): Promise<FeedbackData[]> {
+     async getAllFeedback(): Promise<FeedbackData[]> {
          const connection = db;
         if (connection) {
             const query = 'SELECT f.*, m.item_name FROM feedback f JOIN menuItem m ON f.item_Id = m.item_Id';
@@ -18,7 +14,7 @@ export class FeedbackService {
         }
     }
 
-    public async getAllItemFeedback(): Promise<FeedbackData[]> {
+     async getAllItemFeedback(): Promise<FeedbackData[]> {
         const connection = db;
        if (connection) {
            const query = 'SELECT  f.*, m.item_name,mt.meal_type_name,mt.id as meal_type FROM feedback f JOIN menuItem m ON f.item_Id = m.item_Id JOIN meal_type mt ON m.meal_type = mt.id;';
@@ -29,7 +25,7 @@ export class FeedbackService {
        }
    }
 
-    public async getFeedbackByCategory(category: string): Promise<FeedbackData[]> {  
+     async getFeedbackByCategory(category: string): Promise<FeedbackData[]> {  
         const connection = db;
         if (connection) {
             const query = `SELECT f.item_Id, m.item_name AS foodItem,mt.id, mt.meal_type_name,f.Comment, f.Rating 
@@ -43,7 +39,7 @@ export class FeedbackService {
         }
     }
 
-    public async getFeedbackByMenuItemId(idsArray: string[]): Promise<FeedbackData[]> {  
+     async getFeedbackByMenuItemId(idsArray: string[]): Promise<FeedbackData[]> {  
 
         const connection = db;
         if (connection) {
@@ -64,8 +60,7 @@ export class FeedbackService {
         }
     }
 
-//feedback data from the rollout ids
-    public async getFeedbackByIds(idsArray: string[]): Promise<FeedbackData[]> {  
+     async getFeedbackByIds(idsArray: string[]): Promise<FeedbackData[]> {  
     const connection = db;
     if (connection) {
         const placeholders = idsArray.map(() => '?').join(', ');
@@ -81,8 +76,7 @@ export class FeedbackService {
 
 
 //get all feedback data for monthly report
-
-public async getFeedbackMonthlyReport(startDate: string, endDate: string) {
+ async getFeedbackMonthlyReport(startDate: string, endDate: string) {
     const query = `
         SELECT 
             m.item_Id AS menu_id, 
@@ -107,7 +101,7 @@ public async getFeedbackMonthlyReport(startDate: string, endDate: string) {
 
 
     // addDetailFeedbackQuestions
-    public async addDetailFeedbackQuestions(itemId: number, questions:string[]): Promise<string> {
+     async addDetailFeedbackQuestions(itemId: number, questions:string[]): Promise<string> {
         const connection = db;
         if (connection) {
             const checkQuery = `SELECT COUNT(*) as count FROM discardmenufeedback WHERE menu_id = ?`;
@@ -126,13 +120,10 @@ public async getFeedbackMonthlyReport(startDate: string, endDate: string) {
         }
     }
 
-
-
-    public async insertUserFeedback(feedback: any) {
+     async insertUserFeedback(feedback: any) {
         const connection = db;
         if(connection) {
-            const query = `INSERT INTO feedback (userId, itemId, rating, comment, date) VALUES
-                            (?, ?, ?, ?, Now())`;
+            const query = `INSERT INTO feedback (userId, itemId, rating, comment, date) VALUES (?, ?, ?, ?, Now())`;
             await connection.execute(query,[feedback.userId, feedback.itemId, feedback.rating, feedback.comment]);
             return 'Data inserted'
         } else {
@@ -140,7 +131,7 @@ public async getFeedbackMonthlyReport(startDate: string, endDate: string) {
         }
     }
 
-    public async viewEmployeeVotes(item:any): Promise<RowDataPacket[] | { message: string }> {
+     async viewEmployeeVotes(item:any): Promise<RowDataPacket[] | { message: string }> {
         console.log('show para item',item);        
         const connection = db;
         if(connection){
@@ -157,8 +148,7 @@ public async getFeedbackMonthlyReport(startDate: string, endDate: string) {
             } else {
                 console.log(rows);
                 return rows;
-            }  
-            
+            }           
 
         }else {
             throw new Error('No database connection.');

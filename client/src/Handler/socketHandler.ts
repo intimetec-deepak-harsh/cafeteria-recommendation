@@ -5,14 +5,12 @@ class SocketHandler {
 
     public setupSocketListeners(): void {
         this.socket.on('connect', () => {
-            console.log('Connected to the server.');
+            console.log('Connected to the server .');
         });
 
         this.socket.on('disconnect', () => {
             console.log('Disconnected from the server.');
-        });
-
-    
+        });    
     }
 
     public emitEvent(eventName: string, data?: any, callback?: (response: any) => void): void {
