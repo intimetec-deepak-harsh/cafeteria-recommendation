@@ -1,0 +1,247 @@
+import { db } from '../database/connection';
+import { Engine } from '../recommendationEngine/engine';
+import { FeedbackData } from '../recommendationEngine/Interface/feedbackData';
+import { FeedbackService } from './feedbackService';
+import NotificationService from './notificationService';
+
+class RecommendationService {
+    private feedbackService: FeedbackService;
+
+    constructor(feedbackService: FeedbackService) {
+        this.feedbackService = feedbackService;
+    }
+
+     async getRecommendedFood(category: string) {
+        const feedbackData = await this.feedbackService.getFeedbackByCategory(category);
+
+        const feedback = feedbackData.map(row => ({
+            item_Id: row.item_Id,
+            foodItem: row.foodItem,
+            meal_type_name: row.meal_type_name,
+            meal_type:row.id,
+            comment: row.Comment,
+            rating: row.Rating
+        })) as FeedbackData[];
+
+
+        const analyzer = new Engine(feedback);
+        return analyzer.getTop5ByCombinedAvg();
+    }
+
+     async getAllItemRecommendedFood() {
+        const feedbackData = await this.feedbackService.getAllItemFeedback();
+
+        const feedback = feedbackData.map(row => ({
+            item_Id: row.item_Id,
+            foodItem: row.item_name,
+            meal_type_name: row.meal_type_name,
+            meal_type: row.meal_type,
+            comment: row.Comment,
+            rating: row.Rating
+        })) as FeedbackData[];
+
+
+        const analyzer = new Engine(feedback);
+        return analyzer.getAllCombinedAvg();
+    }
+
+     async getRolloutRecommendedFood(feedbackData: FeedbackData[]) {
+        const feedback = feedbackData.map(row => ({
+            item_Id: row.item_Id,
+            foodItem: row.foodItem,
+            comment: row.comment,
+            rating: row.rating,
+            meal_type: row.meal_type
+        })) as FeedbackData[];
+ 
+        const analyzer = new Engine(feedback);
+        return analyzer.getTop5ByCombinedAvg();
+    }
+
+     async analyzeRolloutInput(itemId: any) {
+        const connection = db;
+        if (!connection) {
+            throw new Error('No database connection.');
+        }
+    
+        const idsArray = itemId.selectedItemId.split(',').map((id: string) => id.trim());
+        if (idsArray.length === 0) {
+            throw new Error('No item IDs provided.');
+        }
+    
+        try {
+            const getAllMenuData = await this.feedbackService.getFeedbackByMenuItemId(idsArray);
+    
+            const transformedData = getAllMenuData
+                .map(row => ({
+                    item_Id: row.item_Id,
+                    meal_type: this.convertMealType(row.mealType), 
+                    foodItem: row.foodItem,
+                    comment: row.Comment,
+                    rating: row.Rating,
+                }))
+                .filter((row): row is FeedbackData =>
+                    row.item_Id !== undefined &&
+                    row.meal_type !== undefined &&
+                    row.foodItem !== undefined &&
+                    row.comment !== undefined &&
+                    row.rating !== undefined
+                );
+       
+            const rolloutRecommendedFood = await this.getRolloutRecommendedFood(transformedData);   
+            const checkData = await this.processRecommendedItems(rolloutRecommendedFood);
+            return checkData;
+
+            
+        } catch (error) {
+            console.error('Error during data analysis:', error);
+            throw new Error('Error during data analysis.');
+        }
+    }
+    
+
+    private convertMealType(mealType: string): number {
+        switch (mealType.toLowerCase()) {
+            case 'breakfast':
+                return 1;
+            case 'lunch':
+                return 2;
+            case 'dinner':
+                return 3;
+            default:
+                throw new Error(`Invalid meal type: ${mealType}`);
+        }
+    }
+
+     async checkIfDataExists(category: string): Promise<boolean> {
+        const connection = db;
+        const checkQuery = `SELECT COUNT(*) as count FROM recommendation WHERE category = ? AND DATE(recommendation_date) = CURDATE()`;
+        const [rows] = await connection!.execute(checkQuery, [category]);
+        const count = (rows as any)[0].count;
+        return count > 0;
+    }
+
+     async processRecommendedItems(recommendedItems: any) {
+        try {
+            const dataExists = await this.checkIfDataExists(recommendedItems[0].itemId);
+            if (dataExists) {
+                console.log(`Data for category "${recommendedItems[0].item_Id}" and today is already present.`);
+            } else {
+                await this.insertRecommendedItems(recommendedItems);
+                return recommendedItems;
+            }
+        } catch (error) {
+            console.error('Error processing recommended items:', error);
+        }
+    }
+
+     async insertRecommendedItems(recommendedItems: any[]) {  
+        const connection = db;
+        if (!connection) {
+            console.error('No database connection.');
+            return;
+        }
+    
+        try {
+            const insertQuery = `
+                INSERT INTO recommendation(menuitem_id, recommendation_date, category, menuName, rating, sentimentscore)
+                VALUES (?, NOW(), ?, ?, ?, ?)`;
+    
+            for (const item of recommendedItems) {
+                const { itemId, foodItem, meal_type, avgRating, avgSentimentRating } = item;
+    
+                if ([itemId, foodItem, meal_type, avgRating, avgSentimentRating].includes(undefined)) {
+                    console.error('Skipping item due to missing required fields:', JSON.stringify(item));
+                    continue;
+                }
+    
+                let category = '';
+                switch (meal_type) {
+                    case 1:
+                        category = 'Breakfast';
+                        break;
+                    case 2:
+                        category = 'Lunch';
+                        break;
+                    case 3:
+                        category = 'Dinner';
+                        break;
+                    default:
+                        console.error(`Invalid meal_type for item: ${JSON.stringify(item)}`);
+                        continue;
+                }
+    
+                try {
+                    await connection.execute(insertQuery, [
+                        itemId,
+                        category,
+                        foodItem,
+                        avgRating,
+                        avgSentimentRating 
+                    ]);
+    
+                    const menuId = itemId;
+                    console.log('Recommended food item ID:', menuId);
+    
+                    const type = 'recommendation';
+                    const message = `Rollout food for '${category}' has been added for the vote.`;
+                    await NotificationService.addNotification(type, message, menuId);
+                    console.log('Notification added successfully for the recommendations.');
+                } catch (insertError) {
+                    console.error('Error inserting recommended item:', insertError);
+                }
+            }
+        } catch (error) {
+            console.error('Error inserting recommended items:', error);
+        }
+    }
+
+
+     async addMenuItemAudit(menuItems: any[]) {
+        const connection = db;
+        if (!connection) {
+            console.error('No database connection.');
+            return;
+        }
+    
+        try {
+            const insertQuery = `
+                INSERT INTO menu_item_audit (foodItem, itemId,meal_id, meal_type_name, avgRating, avgSentimentRating, combinedAvg, EntryDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+    
+            const updateQuery = `UPDATE menu_item_audit SET foodItem = ?,meal_id =?, meal_type_name = ?, avgRating = ?, avgSentimentRating = ?, combinedAvg = ?, EntryDate = ? WHERE itemId = ?`;
+    
+            for (const item of menuItems) {
+                const { foodItem, itemId, meal_id, meal_type_name, avgRating, avgSentimentRating, combinedAvg } = item;
+    
+                if ([foodItem,itemId,meal_id, meal_type_name, avgRating, avgSentimentRating, combinedAvg].includes(undefined)) {
+                    console.error('Skipping item due to missing required fields:', JSON.stringify(item));
+                    continue;
+                }
+    
+                try {
+                    const [rows] = await connection.execute('SELECT COUNT(*) AS count FROM menu_item_audit WHERE itemId = ?', [itemId]);
+                    const count = (rows as any)[0].count;
+    
+                    if (count > 0) {
+                    
+                        await connection.execute(updateQuery, [
+                            foodItem, meal_id, meal_type_name, avgRating, avgSentimentRating, combinedAvg, new Date(), itemId
+                        ]);
+                    } else {
+                  
+                        await connection.execute(insertQuery, [
+                            foodItem, itemId, meal_id, meal_type_name, avgRating, avgSentimentRating, combinedAvg, new Date()
+                        ]);
+                    }
+                } catch (queryError) {
+                    console.error('Error inserting or updating menu item audit entry:', queryError);
+                }
+            }
+        } catch (error) {
+            console.error('Error processing menu item audit entries:', error);
+        }
+    }
+    
+}
+
+export default RecommendationService;
